@@ -16,10 +16,13 @@ SRC :=								\
 	./src/matjuice/transformers/JSAddVarDecls.java		\
 	./src/matjuice/transformers/JSRenameBuiltins.java
 
-all: jar
+all: jar jslib
 
 jar: generate_ast matjuice
 	jar cf $(MATJUICE_JAR) -C bin matjuice
+
+jslib: src/matjuice/lib/lib.sjs
+	sjs -o $(GEN_DIR)/lib.js -r $<
 
 matjuice: $(SRC)
 	mkdir -p $(BUILD_DIR)

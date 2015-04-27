@@ -55,7 +55,6 @@ public class Main {
         }
     }
 
-
     public static void main(String[] args) {
         if (args.length < 3) usage();
 
@@ -97,22 +96,13 @@ public class Main {
         }
 
 
-        // Expand SweetJS macros
-        try {
-            sweetjs("src/natlab/backends/javascript/lib/lib.sjs", "src/natlab/backends/javascript/lib/lib.js");
-        }
-        catch (IOException e) {
-            System.err.println("Error: could not sweeten sjs file");
-            System.exit(1);
-        }
-
         // Write out the JavaScript program.
         // TODO: Fix the relative path of lib.js.
         // TODO: Better error messages.
         FileWriter out = null;
         String[] jsDeps = {
-                        "src/natlab/backends/javascript/lib/mjapi.js",
-                        "src/natlab/backends/javascript/lib/lib.js",
+            "src/matjuice/lib/mjapi.js",
+            "gen/lib.js",
         };
 
         try {
@@ -134,18 +124,6 @@ public class Main {
                 out.close();
             }
             catch (IOException e) {}
-        }
-    }
-
-    private static void sweetjs(String inputName, String outputName) throws IOException {
-        Runtime rt = Runtime.getRuntime();
-        String cmd = String.format("sjs -r %s -o %s", inputName, outputName);
-        Process proc = rt.exec(cmd);
-        try {
-            proc.waitFor();
-        } catch (InterruptedException e) {
-		System.err.println("Error: cannot execute sweetjs transformation");
-		System.exit(1);
         }
     }
 }
