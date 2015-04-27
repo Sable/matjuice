@@ -1,6 +1,7 @@
 # Binaries and generated code
 bin
 gen
+matjuice.jar
 
 # LaTeX files
 *.log

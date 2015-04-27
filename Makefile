@@ -1,8 +1,9 @@
-BUILD_DIR=bin
-GEN_DIR=gen
-MCLAB_CORE_PATH=$(HOME)/workspace/mclab-core
-NATLAB_PATH=$(MCLAB_CORE_PATH)/languages/Natlab
-SRC=								\
+BUILD_DIR := bin
+GEN_DIR := gen
+MATJUICE_JAR := matjuice.jar
+MCLAB_CORE_PATH ?= $(HOME)/workspace/mclab-core
+NATLAB_PATH := $(MCLAB_CORE_PATH)/languages/Natlab
+SRC :=								\
 	./src/matjuice/Main.java				\
 	./src/matjuice/pretty/PrettyText.java			\
 	./src/matjuice/pretty/Pretty.java			\
@@ -15,7 +16,10 @@ SRC=								\
 	./src/matjuice/transformers/JSAddVarDecls.java		\
 	./src/matjuice/transformers/JSRenameBuiltins.java
 
-all: generate_ast matjuice
+all: jar
+
+jar: generate_ast matjuice
+	jar cf $(MATJUICE_JAR) -C bin matjuice
 
 matjuice: $(SRC)
 	mkdir -p $(BUILD_DIR)
@@ -26,4 +30,4 @@ generate_ast: src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPre
 	java -jar $(MCLAB_CORE_PATH)/lib/jastadd2-2.1.9/jastadd2.jar --o $(GEN_DIR) --package=matjuice.jsast $^
 
 clean:
-	rm -rf $(BUILD_DIR) $(GEN_DIR)
+	rm -rf $(BUILD_DIR) $(GEN_DIR) $(MATJUICE_JAR)
