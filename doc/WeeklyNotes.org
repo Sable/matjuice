@@ -1,0 +1,30 @@
+* 2014-09-12
+
+- The representation of matrice has been changed: we now use
+  column-major representation to better accomodate MATLAB constructs.
+  The =mj_get= and =mj_set= functions expect the data to be arranged
+  in this manner.
+- Using this column-major representation fixes one of the problem we
+  had to hack around earlier: linear indexation.  A vector is viewed
+  as a 2D matrix with one of the dimensions being 1 (e.g. [1 2 3] has
+  the shape [3, 1]).  Previously, indexing with only one index
+  (e.g. =vec(3)=) calculated an incorrect offset; this is now fixed.
+- The responsability to verify inputs lies in the =mc_*= functions,
+  not the =mj_*= functions.  The verification of input is part of the
+  MATLAB semantics and thus belongs in the implementation of its
+  functions.
+- A unit test framework has been added to the source tree and tests
+  have been added for some of the =mj_*= functions; the rest will be
+  filled out later.  The test framework is qunit.
+- It was found that adding properties to a number in JavaScript
+  doesn't seem to work; the MatJuice API has thus been modified to
+  accomodate this.  More testing will be required to see if this
+  change allows the code to stay simple.
+
+
+* 2014-12-01
+
+- Should we separate scalars and arrays or represent scalars as single
+  element matrices?
+- How should we pass information from the compiler to the generated JS
+  (e.g. shape of a slicing operation)

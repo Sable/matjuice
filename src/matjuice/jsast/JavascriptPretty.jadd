@@ -1,0 +1,236 @@
+import matjuice.pretty.Pretty;
+import matjuice.pretty.PrettyBase;
+
+aspect PrettyPrinter {
+
+    public PrettyBase Program.pp() {
+        PrettyBase[] ppFunctions = new PrettyBase[this.getNumFunction()];
+        int i = 0;
+        for (Function f: this.getFunctionList()) {
+            ppFunctions[i] = f.pp();
+            i++;
+        }
+        return Pretty.separateBy(Pretty.concat(Pretty.NEWLINE, Pretty.NEWLINE),
+                                 ppFunctions);
+    }
+
+    public PrettyBase Function.pp() {
+        // Formal parameters
+        PrettyBase[] ppParams = new PrettyBase[this.getNumParam()];
+        int i = 0;
+        for (Parameter param: this.getParamList()) {
+            ppParams[i] = param.pp();
+            ++i;
+        }
+
+        return Pretty.concat(Pretty.text("function "),
+                             this.hasFunctionName() ? this.getFunctionName().pp() : Pretty.EMPTY,
+                             Pretty.argList(ppParams),
+                             Pretty.text(" "),
+                             this.getStmtBlock().pp());
+
+
+    }
+
+    public PrettyBase FunctionName.pp() {
+        return Pretty.text(this.getName());
+    }
+
+
+    public PrettyBase Parameter.pp() {
+        return Pretty.text(this.getName());
+    }
+
+    public PrettyBase Stmt.pp() {
+        return Pretty.text("STMT SHOULD NOT BE GENERATED");
+    }
+
+    public PrettyBase StmtNull.pp() {
+        return Pretty.text(";");
+    }
+
+    public PrettyBase StmtExpr.pp() {
+        return Pretty.concat(this.getExpr().pp(), Pretty.text(";"));
+    }
+
+    public PrettyBase StmtReturn.pp() {
+        return Pretty.concat(Pretty.text("return "),
+                             this.hasExpr() ? this.getExpr().pp() : Pretty.EMPTY,
+                             Pretty.text(";"));
+    }
+
+
+    public PrettyBase StmtBlock.pp() {
+        PrettyBase[] stmts = new PrettyBase[this.getNumStmt()];
+        int i = 0;
+        for (Stmt stmt: this.getStmtList()) {
+            stmts[i++] = stmt.pp();
+        }
+        return Pretty.block(stmts);
+    }
+
+
+    public PrettyBase StmtBlockNoBraces.pp() {
+        PrettyBase[] stmts = new PrettyBase[this.getNumStmt()];
+        int i = 0;
+        for (Stmt stmt: this.getStmtList()) {
+            stmts[i++] = stmt.pp();
+        }
+        return Pretty.separateBy(Pretty.NEWLINE, stmts);
+    }
+
+
+    public PrettyBase StmtIfThenElse.pp() {
+        return Pretty.concat(
+            Pretty.text("if "), Pretty.parenthesized(this.getCond().pp()), Pretty.text(" "),
+            this.getThen().pp(),
+            this.hasElse() ?
+            Pretty.concat(Pretty.NEWLINE, Pretty.text("else "), this.getElse().pp()) : Pretty.EMPTY);
+    }
+
+
+    public PrettyBase StmtWhile.pp() {
+        return Pretty.separateBy(
+            Pretty.text(" "),
+            Pretty.text("while"),
+            Pretty.parenthesized(this.getCond().pp()),
+            this.getBody().pp());
+    }
+
+
+    public PrettyBase StmtFor.pp() {
+        PrettyBase init = this.getInit().pp();
+        PrettyBase test = this.getTest().pp();
+        PrettyBase upd  = this.getUpdate().pp();
+        return Pretty.separateBy(
+            Pretty.text(" "),
+            Pretty.text("for"),
+            Pretty.parenthesized(Pretty.separateBy(Pretty.text("; "), init, test, upd)),
+            this.getBody().pp());
+    }
+
+
+    public PrettyBase StmtVarDecl.pp() {
+        PrettyBase init =
+            this.hasInit()
+            ? Pretty.concat(Pretty.text(" = "), this.getInit().pp())
+            : Pretty.EMPTY;
+        return Pretty.concat(Pretty.text("var "), this.getVar().pp(), init, Pretty.text(";"));
+    }
+
+    public PrettyBase StmtGlobalDecl.pp() {
+        // JavaScript doesn't have explicit global declarations.
+        return Pretty.EMPTY;
+    }
+
+
+    public PrettyBase StmtComment.pp() {
+        return Pretty.concat(Pretty.text("// "),
+                             Pretty.text(this.getText()));
+    }
+
+
+    public PrettyBase StmtEmpty.pp() {
+        return Pretty.EMPTY;
+    }
+
+
+    public PrettyBase StmtBreak.pp() {
+        return Pretty.text("break");
+    }
+
+
+    public PrettyBase StmtContinue.pp() {
+        return Pretty.text("continue");
+    }
+
+
+
+    public PrettyBase Expr.pp() {
+        return Pretty.text("EXPR SHOULD NOT BE GENERATED");
+    }
+
+
+
+
+    public PrettyBase ExprInt.pp() {
+        return Pretty.text(this.getValue() + "");
+    }
+
+    public PrettyBase ExprNum.pp() {
+        return Pretty.text(this.getValue() + "");
+    }
+
+    public PrettyBase ExprBoolean.pp() {
+        return Pretty.text(this.getValue() + "");
+    }
+
+    // FIXME: handle escaping.
+    public PrettyBase ExprString.pp() {
+        return Pretty.text('"' + this.getValue() + '"');
+    }
+
+    public PrettyBase ExprArray.pp() {
+        PrettyBase[] elements = new PrettyBase[this.getNumValue()];
+        int i = 0;
+        for (Expr expr: this.getValueList()) {
+            elements[i++] = expr.pp();
+        }
+
+        return Pretty.wrapped(Pretty.text("["),
+                              Pretty.text("]"),
+                              Pretty.separateBy(Pretty.text(", "), elements));
+    }
+
+    public PrettyBase ExprVar.pp() {
+        return Pretty.text(this.getName());
+    }
+
+
+    public PrettyBase ExprPropertyGet.pp() {
+        return Pretty.concat(this.getExpr().pp(),
+                             Pretty.wrapped(Pretty.text("["),
+                                            Pretty.text("]"),
+                                            this.getProperty().pp()));
+    }
+
+    public PrettyBase ExprCall.pp() {
+        PrettyBase[] args = new PrettyBase[this.getNumArgument()];
+        int i = 0;
+        for (Expr arg : this.getArgumentList()) {
+            args[i] = arg.pp();
+            ++i;
+        }
+        return Pretty.concat(this.getExpr().pp(),
+                             Pretty.argList(args));
+    }
+
+
+    public PrettyBase ExprLambda.pp() {
+        return this.getFunction().pp();
+    }
+
+    public PrettyBase ExprUnaryOp.pp() {
+        return Pretty.concat(Pretty.text(this.getOp()),
+                             this.getExpr().pp());
+    }
+
+    public PrettyBase ExprBinaryOp.pp() {
+        return Pretty.separateBy(
+            Pretty.text(" "),
+            this.getExpr1().pp(),
+            Pretty.text(this.getOp()),
+            this.getExpr2().pp());
+    }
+
+    public PrettyBase ExprAssign.pp() {
+        return Pretty.concat(this.getLHS().pp(),
+                             Pretty.text(" = "),
+                             this.getExpr().pp());
+    }
+
+    public PrettyBase ExprColon.pp() {
+        return Pretty.text("MC_COLON");
+    }
+
+}

@@ -1,0 +1,9 @@
+# Binaries and generated code
+bin
+gen
+
+# LaTeX files
+*.log
+*.aux
+*.dvi
+*.pdf

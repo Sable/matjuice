@@ -1,0 +1,113 @@
+#+latex_header: \usepackage{palatino}
+#+latex_header: \usepackage{parskip}
+
+* Design Notes of the pretty printing library
+
+The pretty printing library is a Java translation of how pretty
+printers are usually represented in a functional language.  The pretty
+printer representation is a tree, and we perform a depth-first
+traversal through this tree to convert it to a string.  We have a
+bunch of classes, so here is their hierarchy along with a quick
+comment.
+
+- *Pretty*: the API that the user should use to avoid breakage if the
+  classes are ever modified.
+- *PrettyBase*: the abstract node type from which all concrete nodes inherit.
+  - *PrettyLine*: a newline; we distinguish this node for indentation purposes.
+  - *PrettyText*: a string of text; this text should not contain
+    newline characters.
+  - *PrettyIndent*: a node used to indicate that its descendents
+    should be indented by one extra level.
+  - *PrettyConcat*: a node with multiple children, represents the
+    concatenation of all the children.
+- *Pair*: a combination of a node and an integer representing a level
+  of indentation; used only with =Pretty.display=.
+- *PrettyUtils*: a collection of useful methods for nodes.
+
+** API
+
+- *Pretty.EMPTY*: the empty string
+- *Pretty.NEWLINE*: the newline singleton
+- *Pretty.text()*: convert a string into a /PrettyBase/
+- *Pretty.concat()*: concatenate many /PrettyBase/ nodes together
+  (/concat()/ is variadic).
+- *Pretty.indent()*: indent a /PrettyBase/; this indentation is
+  applied recursively to all children.
+- *Pretty.wrapped()*: return a concatenation of a /PrettyBase/ node
+  wrapped between an opening and a closing /PrettyBase/.
+- *Pretty.parenthesized()*: /Pretty.wrapped()/ specialized to
+  parentheses.
+- *Pretty.block()*: /Pretty.wrapped()/ specialized to curly braces.
+- *Pretty.separatedBy*: concatenate multiple /PrettyBase/ nodes
+  together, separating them with a given node.
+- *Pretty.display*: converts a /PrettyBase/ tree into a string.
+
+
+** Pretty.display
+
+This method deserves its own, separate explanation.  We expose a
+public =display= method that takes the root of the =PrettyBase= tree
+and returns that tree as a flattened string.
+
+During the execution of the method, we maintain three data structures:
+
+- *worklist*: a stack of =<PrettyBase, int>= pairs, where the integer
+  represents the indentation level of its associated node.
+- *sb*: a StringBuffer that we use to efficiently accumulate the string
+  output of the method.
+- *currCol*: we need to maintain the column where text is to be written.
+  This lets us know whether we need to insert a full indentation
+  (i.e. currCol == 0), a partial indentation (i.e. currCol > 0 &&
+  currCol < indentLevel*width), or no indentation (i.e. currCol >=
+  indentLevel*width).
+
+The method is a bit unidiomatic OO code with all the calls to
+=instanceof=, however it is probably easier to implement this way
+than through proper polymorphism.  The method works by popping a node
+from the worklist (if there are any left).  If the node is a newline
+or a text node, we simply add the text to the string buffer and
+appropriately update the =currCol= value for the recursive call.
+
+We process a =PrettyConcat= node by adding all its parts into the
+worklist.  We add the parts in reverse order to make sure that the
+first part will be at the top of the stack.  =PrettyIndent= is
+processed by taking its child and pushing it onto the worklist with an
+increased indentation level.  If the child is an inner node
+(e.g. =PrettyConcat=), further handling will propagate this new
+indentation level to all descendents of =PrettyIndent=.
+
+* JavaScript Array/Matrix API
+
+- create :: :: (data: <scalar | Float64Array>, size: [int]) -> T
+
+               Create a new /T/ from a scalar or from a
+               /Float64Array/.  The dimension argument is ignored when
+               constructing from a scalar, and is not checked for
+               consistency when consistency from an array.
+
+- getSize :: :: (m: T) -> [int]
+
+                Return the size (as an array of ints) of /m/; if /m/
+                is a scalar, /[1, 1]/ is returned, otherwise the
+                /.size/ property of the matrix object is returned.
+
+- getDims :: :: (m: T) -> int
+
+                Return the dimensions of /m/; the number of dimensions
+                is the number of elements of the size of /m/.
+
+- getElem :: :: (m: T, idx: int) -> number
+
+                Return the element of /m/ at index /idx/
+                (0-indexed).  No bounds checking is performed.
+
+- setElem :: :: (m: T, idx: int, value: number) -> void
+
+                Replace the value of /m/ at index /idx/ with /value/;
+                only works when /m/ is a matrix, no-op for scalars.
+
+* JavaScript MATLAB built-in library
+
+- Can we use something like numeric.js to provide fast built-ins?
+- Where we use MJ_copy, could we improve performance by creating and
+  empty buffer where we don't copy data?

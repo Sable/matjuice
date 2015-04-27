@@ -1,0 +1,153 @@
+% Created 2014-06-26 Thu 13:24
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{soul}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\usepackage{palatino}
+\usepackage{parskip}
+\providecommand{\alert}[1]{\textbf{#1}}
+
+\title{DesignNotes}
+\author{Vincent Foley}
+\date{\today}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs Org-mode version 7.9.3f}}
+
+\begin{document}
+
+\maketitle
+
+\setcounter{tocdepth}{3}
+\tableofcontents
+\vspace*{1cm}
+
+\section{Design Notes of the pretty printing library}
+\label{sec-1}
+
+
+The pretty printing library is a Java translation of how pretty
+printers are usually represented in a functional language.  The pretty
+printer representation is a tree, and we perform a depth-first
+traversal through this tree to convert it to a string.  We have a
+bunch of classes, so here is their hierarchy along with a quick
+comment.
+
+\begin{itemize}
+\item \textbf{Pretty}: the API that the user should use to avoid breakage if the
+  classes are ever modified.
+\item \textbf{PrettyBase}: the abstract node type from which all concrete nodes inherit.
+\begin{itemize}
+\item \textbf{PrettyLine}: a newline; we distinguish this node for indentation purposes.
+\item \textbf{PrettyText}: a string of text; this text should not contain
+    newline characters.
+\item \textbf{PrettyIndent}: a node used to indicate that its descendents
+    should be indented by one extra level.
+\item \textbf{PrettyConcat}: a node with multiple children, represents the
+    concatenation of all the children.
+\end{itemize}
+\item \textbf{Pair}: a combination of a node and an integer representing a level
+  of indentation; used only with \texttt{Pretty.display}.
+\item \textbf{PrettyUtils}: a collection of useful methods for nodes.
+\end{itemize}
+\subsection{API}
+\label{sec-1-1}
+
+
+\begin{itemize}
+\item \textbf{Pretty.EMPTY}: the empty string
+\item \textbf{Pretty.NEWLINE}: the newline singleton
+\item \textbf{Pretty.text()}: convert a string into a \emph{PrettyBase}
+\item \textbf{Pretty.concat()}: concatenate many \emph{PrettyBase} nodes together
+  (\emph{concat()} is variadic).
+\item \textbf{Pretty.indent()}: indent a \emph{PrettyBase}; this indentation is
+  applied recursively to all children.
+\item \textbf{Pretty.wrapped()}: return a concatenation of a \emph{PrettyBase} node
+  wrapped between an opening and a closing \emph{PrettyBase}.
+\item \textbf{Pretty.parenthesized()}: \emph{Pretty.wrapped()} specialized to
+  parentheses.
+\item \textbf{Pretty.block()}: \emph{Pretty.wrapped()} specialized to curly braces.
+\item \textbf{Pretty.separatedBy}: concatenate multiple \emph{PrettyBase} nodes
+  together, separating them with a given node.
+\item \textbf{Pretty.display}: converts a \emph{PrettyBase} tree into a string.
+\end{itemize}
+\subsection{Pretty.display}
+\label{sec-1-2}
+
+
+This method deserves its own, separate explanation.  We expose a
+public \texttt{display} method that takes the root of the \texttt{PrettyBase} tree
+and returns that tree as a flattened string.
+
+During the execution of the method, we maintain three data structures:
+
+\begin{itemize}
+\item \textbf{worklist}: a stack of \texttt{<PrettyBase, int>} pairs, where the integer
+  represents the indentation level of its associated node.
+\item \textbf{sb}: a StringBuffer that we use to efficiently accumulate the string
+  output of the method.
+\item \textbf{currCol}: we need to maintain the column where text is to be written.
+  This lets us know whether we need to insert a full indentation
+  (i.e. currCol == 0), a partial indentation (i.e. currCol > 0 &&
+  currCol < indentLevel*width), or no indentation (i.e. currCol >=
+  indentLevel*width).
+\end{itemize}
+
+The method is a bit unidiomatic OO code with all the calls to
+\texttt{instanceof}, however it is probably easier to implement this way
+than through proper polymorphism.  The method works by popping a node
+from the worklist (if there are any left).  If the node is a newline
+or a text node, we simply add the text to the string buffer and
+appropriately update the \texttt{currCol} value for the recursive call.
+
+We process a \texttt{PrettyConcat} node by adding all its parts into the
+worklist.  We add the parts in reverse order to make sure that the
+first part will be at the top of the stack.  \texttt{PrettyIndent} is
+processed by taking its child and pushing it onto the worklist with an
+increased indentation level.  If the child is an inner node
+(e.g. \texttt{PrettyConcat}), further handling will propagate this new
+indentation level to all descendents of \texttt{PrettyIndent}.
+\section{JavaScript Array/Matrix API}
+\label{sec-2}
+
+
+\begin{description}
+\item[create ::] (data: <scalar | Float64Array>, size: [int]) -> T
+
+               Create a new \emph{T} from a scalar or from a
+               \emph{Float64Array}.  The dimension argument is ignored
+               when constructing from a scalar, and they are not
+               checked for consistency when consistency from an array.
+\item[getSize ::] (m: T) -> [int]
+
+                Return the size (as an array of ints) of \emph{m}; if \emph{m}
+                is a scalar, \emph{[1, 1]} is returned, otherwise the
+                \emph{.size} property of the matrix object is returned.
+\item[getDims ::] (m: T) -> int
+
+                Return the dimensions of \emph{m}; the number of dimensions
+                is the number of elements of the size of \emph{m}.
+\item[getElem ::] (m: T, idx: int) -> number
+
+                Return the element of \emph{m} at index \emph{idx}
+                (0-indexed).  No bounds checking is performed.
+\item[setElem ::] (m: T, idx: int, value: number) -> void
+
+                Replace the value of \emph{m} at index \emph{idx} with \emph{value};
+                only works when \emph{m} is a matrix, no-op for scalars.
+\end{description}
+
+\end{document}

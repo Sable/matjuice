@@ -1,0 +1,591 @@
+var MC_COLON = { start: undefined, end: undefined };
+
+macro elemwise {
+    rule { ( $out:ident <= $M:ident $op $x:expr ) } => {
+        for (var i = 1, N = $M.mj_numel(); i <= N; ++i) {
+            $out.mj_set([i], $M.mj_get([i]) $op $x);
+        }
+    }
+
+    rule { ( $out:ident <= $fn:expr $M:ident ) } => {
+        for (var i = 1, N = $M.mj_numel(); i <= N; ++i) {
+            $out.mj_set([i], $fn($M.mj_get([i])));
+        }
+    }
+}
+
+macro pairwise {
+    rule { ( $out:ident <= $M1:ident $op $M2:ident ) } => {
+        var m1_length = $M1.mj_numel();
+        var m2_length = $M2.mj_numel();
+        if (m1_length !== m2_length) throw "array sizes differ";
+        for (var i = 1, n = m1_length; i <= n; ++i) {
+            var x = $M1.mj_get([i]);
+            var y = $M2.mj_get([i]);
+            $out.mj_set([i], x $op y)
+        }
+    }
+
+    rule { ( $out:ident <= $fn:expr $M1:ident $M2:ident ) } => {
+        if ($M1.mj_numel() !== $M2.mj_numel()) throw "array sizes differ";
+        for (var i = 1, n = $M1.mj_numel(); i <= n; ++i) {
+            var x = $M1.mj_get([i]);
+            var y = $M2.mj_get([i]);
+            $out.mj_set([i], $fn(x, y));
+        }
+    }
+}
+
+
+function mc_plus_SS(x, y) {
+    return x+y;
+}
+
+
+function mc_plus_SM(x, m) {
+    var out = m.mj_clone()
+    elemwise(out <= m + x);
+    return out;
+}
+
+
+function mc_plus_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= m + x);
+    return out;
+}
+
+
+function mc_plus_MM(m1, m2) {
+    var out = m1.mj_clone();
+    pairwise(out <= m1 + m2);
+    return out;
+}
+
+
+function mc_minus_SS(x, y) {
+    return x-y;
+}
+
+
+function mc_minus_SM(x, m) {
+    var out = m.mj_clone();
+    elemwise(out <= m - x);
+    return out;
+}
+
+
+function mc_minus_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= m - x);
+    return out;
+}
+
+
+function mc_minus_MM(m1, m2) {
+    var out = m1.mj_clone();
+    pairwise(out <= m1 - m2);
+    return out;
+}
+
+
+
+function mc_rem_SS(x, y) {
+    return x % y;
+}
+
+
+function mc_rem_SM(x, m) {
+    var out = m.mj_clone();
+    elemwise(out <= m % x);
+    return out;
+}
+
+
+function mc_rem_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= m % x);
+    return out;
+}
+
+
+function mc_rem_MM(m1, m2) {
+    var out = m1.mj_clone();
+    pairwise(out <= m1 % m2);
+    return out;
+}
+
+
+
+function mc_mtimes_SS(x, y) {
+    return x*y;
+}
+
+
+function mc_mtimes_SM(x, m) {
+    var out = m.mj_clone();
+    elemwise(out <= m * x);
+    return out;
+}
+
+
+function mc_mtimes_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= m * x);
+    return out;
+}
+
+
+function mc_mtimes_MM(m1, m2) {
+    var m1_rows = m1.mj_size()[0];
+    var m1_cols = m1.mj_size()[1];
+    var m2_rows = m2.mj_size()[0];
+    var m2_cols = m2.mj_size()[1];
+    if (m1_cols !== m2_rows) {
+        throw 'Inner matrix dimensions must agree.';
+    }
+
+    var out = mc_zeros(m1_rows, m2_cols);
+    for (var row = 1; row <= m1_rows; ++row) {
+        for (var col = 1; col <= m2_cols; ++col) {
+            var acc = 0;
+            for (var k = 1; k <= m2_rows; ++k) {
+                acc += mc_array_get(m1, [row, k]) * mc_array_get(m2, [k, col]);
+            }
+            out = mc_array_set(out, [row, col], acc);
+        }
+    }
+    return out;
+}
+
+
+function mc_mrdivide_SS(x, y) {
+    return x / y;
+}
+
+
+function mc_mrdivide_SM(x, m) {
+    var out = m.mj_clone();
+    elemwise(out <= m / x);
+    return out;
+}
+
+
+function mc_mrdivide_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= m / x);
+    return out;
+}
+
+
+function mc_rdivide_SS(x, y) {
+    return x / y;
+}
+
+function mc_rdivide_MS(m, d) {
+    var out = m.mj_clone();
+    elemwise(out <= m / d);
+    return out;
+}
+
+function mc_rdivide_SM(d, m) {
+    var out = m.mj_clone();
+    elemwise(out <= d / m);
+    return out;
+}
+
+function mc_rdivide_MM(m1, m2) {
+    var out = m1.mj_clone();
+    pairwise(out <= m1 / m2);
+    return out;
+}
+
+function mc_mrdivide_MM(m1, m2) {
+    throw "mc_mrdivide_MM: not implemented";
+}
+
+function mc_lt_SS(x, y) {
+    return x<y;
+}
+
+
+function mc_lt_SM(x, m) {
+    var out = m.mj_clone();
+    elemwise(out <= m < x);
+    return out;
+}
+
+
+function mc_lt_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= m < x);
+    return out;
+}
+
+
+function mc_lt_MM(m1, m2) {
+    var out = m1.mj_clone();
+    pairwise(out <= m1 < m2);
+    return out;
+}
+
+
+function mc_gt_SS(x, y) {
+    return x > y;
+}
+
+
+function mc_gt_SM(x, m) {
+    var out = m.mj_clone();
+    elemwise(out <= m > x);
+    return out;
+}
+
+
+function mc_gt_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= m > x);
+    return out;
+}
+
+
+function mc_gt_MM(m1, m2) {
+    var out = m1.mj_clone();
+    pairwise(out <= m1 > m2);
+    return out;
+}
+
+
+function mc_eq_SS(x1, x2) {
+    return x1 === x2;
+}
+
+
+function mc_eq_SM(x, m) {
+    var out = m.mj_clone();
+    elemwise(out <= m === x);
+    return out;
+}
+
+
+function mc_eq_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= m === x);
+    return out;
+}
+
+
+function mc_eq_MM(m1, m2) {
+    var out = m1.mj_clone();
+    pairwise(out <= m1 === m2);
+    return out;
+}
+
+function mc_ne_SS(x1, x2) {
+    return x1 !== x2;
+}
+
+
+function mc_ne_SM(x, m) {
+    var out = m.mj_clone();
+    elemwise(out <= m !== x);
+    return out;
+}
+
+
+function mc_ne_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= m !== x);
+    return out;
+}
+
+
+function mc_ne_MM(m1, m2) {
+    var out = m1.mj_clone();
+    pairwise(out <= m1 !== m2);
+    return out;
+}
+
+
+function mc_length_S(x) {
+    return 1;
+}
+
+
+function mc_length_M(m) {
+    var max = 0;
+    var size = m.mj_size();
+    for (var i = 0, n = size.length; i < n; ++i)
+        max = Math.max(max, size[i]);
+    return max;
+}
+
+
+function mc_sin_S(x) {
+    return Math.sin(x);
+}
+
+
+function mc_sin_M(m) {
+    var out = m.mj_clone();
+    elemwise(out <= Math.sin m);
+    return out;
+}
+
+
+function mc_uminus_S(x) {
+    return -x;
+}
+
+
+function mc_uminus_M(m) {
+    var out = m.mj_clone();
+    for (var i = 0; i < m.mj_numel(); ++i)
+        out.mj_set([i], -out.mj_get([i]));
+    return out;
+}
+
+function mc_round_S(x) {
+    return Math.round(x);
+}
+
+function mc_round_M(m) {
+    out = m.mj_clone();
+    elemwise(out <= Math.round m);
+    return m;
+}
+
+
+function mc_array_get(m, indices) {
+    var value = m.mj_get(indices);
+    if (value === undefined)
+        throw "invalid indices";
+    else
+        return value;
+}
+
+
+// TODO: handle array growth
+function mc_array_set(m, indices, value) {
+    return m.mj_set(indices, value);
+}
+
+
+// TODO: handle concatenating matrices of more than 2 dimensions
+function mc_horzcat() {
+    var num_rows = -1;
+    var num_cols =  0;
+    var len = 0;
+
+    // Compute the length and number of columns of the result.
+    // Also check that all arguments have the same number of rows.
+    for (var i = 0; i < arguments.length; ++i) {
+        if (num_rows == -1) {
+            num_rows  = arguments[i].mj_size()[0];
+        }
+        else if (arguments[i].mj_size()[0] != num_rows) {
+            throw "Dimensions of matrices being concatenated are not consistent.";
+
+        }
+        num_cols += arguments[i].mj_size()[1];
+        len += arguments[i].mj_numel();
+    }
+
+    // Create the result array buffer and populate it by just putting
+    // all the arguments back-to-back.
+    var buf = new Float64Array(len);
+    var offset = 0;
+    for (var i = 0; i < arguments.length; ++i) {
+        if (arguments[i].mj_scalar()) {
+            buf[offset] = arguments[i];
+        }
+        else {
+            buf.set(arguments[i], offset);
+        }
+        offset += arguments[i].mj_numel();
+    }
+    return mj_create(buf, [num_rows, num_cols]);
+}
+
+// TODO: handle concatenating matrices
+function mc_vertcat() {
+    var num_rows =  0;
+    var num_cols = -1;
+    var len = 0;
+
+    for (var i = 0; i < arguments.length; ++i) {
+        if (num_cols == -1) {
+            num_cols = arguments[i].mj_size()[1];
+        }
+        else if (arguments[i].mj_size()[1] != num_cols) {
+            throw "Dimensions of matrices being concatenated are not consistent.";
+        }
+        num_rows += arguments[i].mj_size()[0];
+        len += arguments[i].mj_numel();
+    }
+    var buf = new Float64Array(len);
+    var offset = 0;
+    for (var col = 1; col <= num_cols; ++col) {
+        for (var arg_id = 0; arg_id < arguments.length; ++arg_id) {
+            for (var row = 1; row <= arguments[arg_id].mj_size()[0]; ++row) {
+                buf[offset] = arguments[arg_id].mj_get([row, col]);
+                offset++;
+            }
+        }
+    }
+    return mj_create(buf, [num_rows, num_cols]);
+}
+
+
+function mc_compute_shape_length(arg) {
+    var shape, length;
+
+    if (arg.length === 0) {
+        shape = [1, 1];
+        length = 1;
+    }
+    else if (arg.length === 1) {
+        var len = Math.max(arg[0], 0);
+        shape = [len, len];
+        length = len * len;
+    }
+    else {
+        shape = arg;
+        length = 1;
+        for (var i = 0; i < shape.length; ++i)
+            length *= arg[i];
+    }
+
+    return [shape, length];
+}
+
+function mc_randn() {
+    var sh_len = mc_compute_shape_length(Array.prototype.slice.call(arguments, 0));
+    var shape = sh_len[0];
+    var length = sh_len[1];
+
+    var buf = new Float64Array(length);
+    for (var i = 0; i < length; ++i) {
+        buf[i] = Math.random();
+    }
+    return mj_create(buf, shape);
+}
+
+
+function mc_zeros() {
+    var sh_len = mc_compute_shape_length(Array.prototype.slice.call(arguments, 0));
+    var shape = sh_len[0];
+    var length = sh_len[1];
+
+    var buf = new Float64Array(length);
+    return mj_create(buf, shape);
+}
+
+
+function mc_ones() {
+    var sh_len = mc_compute_shape_length(Array.prototype.slice.call(arguments, 0));
+    var shape = sh_len[0];
+    var length = sh_len[1];
+
+    var buf = new Float64Array(length);
+    for (var i = 0; i < length; ++i) {
+        buf[i] = 1;
+    }
+    return mj_create(buf, shape);
+}
+
+
+function mc_eye(rows, cols) {
+    if (cols === undefined)
+        cols = rows;
+    var buf = new Float64Array(rows * cols);
+    var mat = mj_create(buf, [rows, cols]);
+    for (var i = 1; i <= rows; ++i) {
+        mat.mj_set([i, i], 1);
+    }
+    return mat;
+}
+
+
+function mc_exp_S(x) {
+    return Math.exp(x);
+}
+
+function mc_exp_M(m) {
+    var out = m.mj_clone();
+    elemwise(out <= Math.exp m);
+    return out;
+}
+
+
+function mc_colon() {
+    var start, stop, step;
+    switch (arguments.length) {
+    case 2:
+        start = arguments[0];
+        stop = arguments[1];
+        step = 1;
+        break;
+    case 3:
+        start = arguments[0];
+        stop = arguments[2];
+        step = arguments[1];
+        break;
+    default:
+        throw "invalid number of arguments";
+    }
+
+    var len = Math.floor((stop - start) / step) + 1;
+    var buf = new Float64Array(len);
+    var i = 0;
+    var val = start;
+    while (true) {
+        if (start <= stop && val > stop) break;
+        if (start  > stop && val < stop) break;
+        buf[i] = val;
+        val += step;
+        i++;
+    }
+    return mj_create(buf, [1, len]);
+}
+
+
+function mc_array_slice(m, slices) {
+    function index_to_indices(nth) {
+        var curr = shape.length - 1;
+        var indices = new Int32Array(shape.length);
+
+        while (nth !== 0) {
+            indices[curr] = Math.floor(nth / stride[curr]);
+            nth = nth % stride[curr];
+            curr--;
+        }
+
+        for (var i = 0; i < first.length; ++i) {
+            indices[i] += first[i];
+        }
+
+        return indices;
+    }
+
+    var length = 1;
+    var shape = [];
+    var first = [];
+
+    for (var i = 0; i < slices.length; ++i) {
+        var start, end;
+        var start = slices[i].start || 1;
+        var end = slices[i].end || m.mj_size()[i];
+        var size = end - start + 1;
+        length *= size;
+        shape.push(size);
+        first.push(start);
+    }
+
+    var new_m = mj_create(new Float64Array(length), shape);
+    var stride = new_m.mj_stride();
+    for (var k = 0; k < length; ++k) {
+        new_m.mj_set([k+1], m.mj_get(index_to_indices(k)));
+    }
+    return new_m;
+}
