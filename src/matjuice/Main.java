@@ -87,12 +87,16 @@ public class Main {
         }
 
         // Apply JavaScript program transformations
-        for (Function f: program.getFunctions()) {
-                // Add variable declarations inside every function.
-                JSAddVarDecls.apply(f);
+        for (int i = 0; i < program.getFunctionList().getNumChild(); ++i) {
+            Function f = program.getFunction(i);
+            // Add variable declarations inside every function.
+            JSAddVarDecls.apply(f);
 
-                // Rename builtin function calls.
-                JSRenameBuiltins.apply(f, analysis, processedFunctions.get(f.getFunctionName().getName()));
+            // Rename builtin function calls and binary operators.
+            program.setFunction(
+                    (Function)JSRenameBuiltins.apply(f, analysis, processedFunctions.get(f.getFunctionName().getName())),
+                    i);
+
         }
 
 
