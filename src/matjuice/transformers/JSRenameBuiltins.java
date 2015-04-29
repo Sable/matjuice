@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014, Vincent Foley-Bourgon, McGill University
+ *  Copyright 2014-2015, Vincent Foley-Bourgon, McGill University
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,15 +25,17 @@ import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import matjuice.jsast.*;
-import matjuice.pretty.Pretty;
 
 /**
  * Rename JavaScript function calls; the prefix "mc_" is added to all built-in
  * calls, and a suffix describing the shape of the parameters is also added with
  * "S" representing a scalar parameter and "M" a matrix parameter.
  *
- * e.g. plus(3, 4) => mc_plus_SS(3, 4) times([1 2 3], 4) => mc_times_MS([1 2 3],
- * 4)
+ * If the function call is an arithmetic operation on two scalars available in
+ * JavaScript, we replace the function call node with a binary expression node.
+ *
+ * e.g. plus(3, 4) => 3 + 4
+ *      times([1 2 3], 4) => mc_times_MS([1 2 3], 4)
  *
  * @author vfoley1
  *

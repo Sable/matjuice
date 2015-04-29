@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014, Vincent Foley-Bourgon, McGill University
+ *  Copyright 2014-2015, Vincent Foley-Bourgon, McGill University
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,11 +20,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.text.Format;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import natlab.tame.BasicTamerTool;
 import natlab.tame.tir.TIRFunction;

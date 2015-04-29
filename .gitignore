@@ -2,6 +2,7 @@
 bin
 gen
 matjuice.jar
+matjuice.sh
 
 # LaTeX files
 *.log

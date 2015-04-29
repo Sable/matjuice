@@ -1,5 +1,5 @@
 /*
- *  Copyright 2014, Vincent Foley-Bourgon, McGill University
+ *  Copyright 2014-2015, Vincent Foley-Bourgon, McGill University
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,18 +17,15 @@
 package matjuice.codegen;
 
 
-import ast.ForStmt;
 import natlab.utils.NodeFinder;
 import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.ValueSet;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.DimValue;
 import natlab.toolkits.rewrite.TempFactory;
 
 import matjuice.jsast.*;
-import matjuice.pretty.Pretty;
 
 
 public class JSASTGenerator {
