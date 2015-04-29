@@ -8,3 +8,9 @@ matjuice.jar
 *.aux
 *.dvi
 *.pdf
+
+
+# Eclipse files
+.classpath
+.project
+.settings
