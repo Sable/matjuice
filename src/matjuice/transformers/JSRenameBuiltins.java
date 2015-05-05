@@ -63,6 +63,12 @@ public class JSRenameBuiltins {
         binary_ops.put("mtimes", "*");
         binary_ops.put("mrdivide", "/");
         binary_ops.put("rdivide", "/");
+        binary_ops.put("le", "<=");
+        binary_ops.put("lt", "<");
+        binary_ops.put("ge", ">=");
+        binary_ops.put("gt", ">");
+        binary_ops.put("eq", "===");
+        binary_ops.put("ne", "!==");
     }
 
     public static ASTNode apply(ASTNode node,
