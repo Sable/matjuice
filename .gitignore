@@ -3,6 +3,7 @@ bin
 gen
 matjuice.jar
 matjuice.sh
+tests/**/*.js
 
 # LaTeX files
 *.log
