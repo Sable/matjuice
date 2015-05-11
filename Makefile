@@ -26,7 +26,8 @@ SRC :=								\
 	./src/matjuice/transformers/JSAddVarDecls.java		\
 	./src/matjuice/transformers/JSRenameBuiltins.java	\
 	./src/matjuice/transformers/JSVisitor.java		\
-	./src/matjuice/transformers/JSAddVarDeclsVisitor.java
+	./src/matjuice/transformers/JSAddVarDeclsVisitor.java	\
+	./src/matjuice/transformers/JSRenameBuiltinsVisitor.java
 
 all: matjuice.jar matjuice.sh jslib
 

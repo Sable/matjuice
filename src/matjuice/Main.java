@@ -35,6 +35,7 @@ import matjuice.jsast.*;
 import matjuice.pretty.Pretty;
 import matjuice.transformers.JSAddVarDeclsVisitor;
 import matjuice.transformers.JSRenameBuiltins;
+import matjuice.transformers.JSRenameBuiltinsVisitor;
 
 
 public class Main {
@@ -90,9 +91,13 @@ public class Main {
             JSAddVarDeclsVisitor.apply(f);
 
             // Rename builtin function calls and binary operators.
+//            program.setFunction(
+//                    (Function)JSRenameBuiltins.apply(f, analysis, processedFunctions.get(f.getFunctionName().getName())),
+//                    i);
             program.setFunction(
-                    (Function)JSRenameBuiltins.apply(f, analysis, processedFunctions.get(f.getFunctionName().getName())),
-                    i);
+                    JSRenameBuiltinsVisitor.apply(f, analysis, processedFunctions.get(f.getFunctionName().getName())), i
+                    );
+
 
         }
 

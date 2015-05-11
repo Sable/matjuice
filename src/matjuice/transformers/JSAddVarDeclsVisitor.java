@@ -46,6 +46,15 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
     }
 
     @Override
+    public Set<String> visitStmtBlockNoBraces(StmtBlockNoBraces stmt) {
+        Set<String> locals = new HashSet<>();
+        for (Stmt child: stmt.getStmtList()) {
+            locals.addAll(child.accept(this));
+        }
+        return locals;
+    }
+
+    @Override
     public Set<String> visitStmtExpr(StmtExpr stmt) {
         return stmt.getExpr().accept(this);
     }

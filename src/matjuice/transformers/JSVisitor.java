@@ -23,6 +23,7 @@ public interface JSVisitor<T> {
     public T visitFunction(Function function);
 
     public T visitStmtBlock(StmtBlock stmt);
+    public T visitStmtBlockNoBraces(StmtBlockNoBraces stmt);
     public T visitStmtExpr(StmtExpr stmt);
     public T visitStmtNull(StmtNull stmt);
     public T visitStmtReturn(StmtReturn stmt);
