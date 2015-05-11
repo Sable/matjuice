@@ -1,0 +1,135 @@
+/*
+ *  Copyright 2014-2015, Vincent Foley-Bourgon, McGill University
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+
+import matjuice.transformers.JSVisitor;
+
+aspect Visitor {
+    public <T> T Program.accept(JSVisitor<T> visitor) {
+        return visitor.visitProgram(this);
+    }
+
+    public <T> T Function.accept(JSVisitor<T> visitor) {
+        return visitor.visitFunction(this);
+    }
+
+    public abstract <T> T Stmt.accept(JSVisitor<T> visitor);
+    public abstract <T> T Expr.accept(JSVisitor<T> visitor);
+
+    public <T> T StmtBlock.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtBlock(this);
+    }
+
+    public <T> T StmtExpr.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtExpr(this);
+    }
+
+    public <T> T StmtNull.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtNull(this);
+    }
+
+    public <T> T StmtReturn.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtReturn(this);
+    }
+
+    public <T> T StmtIfThenElse.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtIfThenElse(this);
+    }
+
+    public <T> T StmtWhile.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtWhile(this);
+    }
+
+    public <T> T StmtFor.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtFor(this);
+    }
+
+    public <T> T StmtGlobalDecl.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtGlobalDecl(this);
+    }
+
+    public <T> T StmtBreak.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtBreak(this);
+    }
+
+    public <T> T StmtContinue.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtContinue(this);
+    }
+
+    public <T> T StmtEmpty.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtEmpty(this);
+    }
+
+    public <T> T StmtComment.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtComment(this);
+    }
+
+    public <T> T StmtVarDecl.accept(JSVisitor<T> visitor) {
+        return visitor.visitStmtVarDecl(this);
+    }
+
+    public <T> T ExprInt.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprInt(this);
+    }
+
+    public <T> T ExprNum.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprNum(this);
+    }
+
+    public <T> T ExprString.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprString(this);
+    }
+
+    public <T> T ExprBoolean.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprBoolean(this);
+    }
+
+    public <T> T ExprArray.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprArray(this);
+    }
+
+    public <T> T ExprCall.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprCall(this);
+    }
+
+    public <T> T ExprLambda.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprLambda(this);
+    }
+
+    public <T> T ExprAssign.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprAssign(this);
+    }
+
+    public <T> T ExprUnaryOp.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprUnaryOp(this);
+    }
+
+    public <T> T ExprBinaryOp.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprBinaryOp(this);
+    }
+
+    public <T> T ExprVar.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprVar(this);
+    }
+
+    public <T> T ExprPropertyGet.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprPropertyGet(this);
+    }
+
+    public <T> T ExprColon.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprColon(this);
+    }
+}

@@ -24,7 +24,9 @@ SRC :=								\
 	./src/matjuice/pretty/PrettyIndent.java			\
 	./src/matjuice/codegen/JSASTGenerator.java		\
 	./src/matjuice/transformers/JSAddVarDecls.java		\
-	./src/matjuice/transformers/JSRenameBuiltins.java
+	./src/matjuice/transformers/JSRenameBuiltins.java	\
+	./src/matjuice/transformers/JSVisitor.java		\
+	./src/matjuice/transformers/JSAddVarDeclsVisitor.java
 
 all: matjuice.jar matjuice.sh jslib
 
@@ -42,7 +44,7 @@ matjuice: $(SRC)
 	mkdir -p $(BUILD_DIR)
 	javac -d $(BUILD_DIR) -cp $(NATLAB_PATH)/McLabCore.jar $(GEN_DIR)/matjuice/jsast/*.java $^
 
-generate_ast: src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPretty.jadd
+generate_ast: src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPretty.jadd src/matjuice/jsast/JavascriptVisitor.jadd
 	mkdir -p $(GEN_DIR)
 	java -jar $(MCLAB_CORE_PATH)/lib/jastadd2-2.1.9/jastadd2.jar --o $(GEN_DIR) --package=matjuice.jsast $^
 

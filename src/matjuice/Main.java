@@ -30,11 +30,10 @@ import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.toolkits.filehandling.GenericFile;
 import natlab.toolkits.path.FileEnvironment;
-
 import matjuice.codegen.JSASTGenerator;
 import matjuice.jsast.*;
 import matjuice.pretty.Pretty;
-import matjuice.transformers.JSAddVarDecls;
+import matjuice.transformers.JSAddVarDeclsVisitor;
 import matjuice.transformers.JSRenameBuiltins;
 
 
@@ -87,7 +86,8 @@ public class Main {
         for (int i = 0; i < program.getFunctionList().getNumChild(); ++i) {
             Function f = program.getFunction(i);
             // Add variable declarations inside every function.
-            JSAddVarDecls.apply(f);
+            // JSAddVarDecls.apply(f);
+            JSAddVarDeclsVisitor.apply(f);
 
             // Rename builtin function calls and binary operators.
             program.setFunction(
