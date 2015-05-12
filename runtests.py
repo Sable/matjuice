@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 
+import itertools
 import pprint
 import os
 import re
@@ -49,7 +50,8 @@ def main():
     t2 = time.time()
     javascript_time = t2 - t1
 
-    if matlab_results == javascript_results:
+    if len(matlab_results) == len(javascript_results) and \
+       all(abs(x-y) < EPSILON for x, y in itertools.izip(matlab_results, javascript_results)):
         print "MATLAB    : %.5f" % matlab_time
         print "JavaScript: %.5f" % javascript_time
         sys.exit(0)
