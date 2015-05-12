@@ -4,12 +4,14 @@ from contextlib import contextmanager
 
 import pprint
 import os
+import re
 import sys
 import tempfile
 import time
 
 EPSILON = 0.001
 MATLAB_HEADER_LINES = 10
+MATLAB_TIC_TOC_RE = re.compile(r'(\d+[.]\d+)')
 
 @contextmanager
 def cd(dir):
@@ -20,10 +22,11 @@ def cd(dir):
 
 def run_matlab(directory, func, arg):
     with cd(directory):
-        pipe = os.popen("matlab -nodesktop -nosplash -r '%s(%s); quit;'" % (func, arg))
+        pipe = os.popen("matlab -nodesktop -nosplash -r 'tic; %s(%s); toc; quit;'" % (func, arg))
         lines = pipe.readlines()
-        results = [float(line.strip()) for line in lines[MATLAB_HEADER_LINES:] if line.strip()]
-        return results
+        results = [float(line.strip()) for line in lines[MATLAB_HEADER_LINES:-1] if line.strip()]
+        timing = float(MATLAB_TIC_TOC_RE.search(lines[-1]).group(1))
+        return results, timing
 
 def run_javascript(directory, func, arg):
     with cd(directory):
@@ -39,11 +42,7 @@ def run_javascript(directory, func, arg):
 
 
 def main():
-    t1 = time.time()
-    matlab_results = run_matlab(sys.argv[1], sys.argv[2], sys.argv[3])
-    t2 = time.time()
-    matlab_time = t2 - t1
-
+    matlab_results, matlab_time = run_matlab(sys.argv[1], sys.argv[2], sys.argv[3])
 
     t1 = time.time()
     javascript_results = run_javascript(sys.argv[1], sys.argv[2], sys.argv[3])
