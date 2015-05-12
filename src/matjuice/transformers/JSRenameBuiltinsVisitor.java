@@ -251,7 +251,7 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
     public ASTNode visitExprVar(ExprVar expr) {
         if (callArgs == null) return expr;
 
-        Expr new_expr = null;
+        Expr new_expr = expr;
         if (Builtin.getInstance(expr.getName()) != null) {
          // Keep in a list which arguments are scalar and which
             // aren't.
