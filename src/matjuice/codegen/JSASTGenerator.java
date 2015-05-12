@@ -233,21 +233,6 @@ public class JSASTGenerator {
 
 
     /**
-     * A helper function; MATLAB is 1-index, JavaScript is 0-indexed.  We use this
-     * method to transform an expression into `expr - 1`.  If the argument is ExprColon
-     * we return it as is.
-     * @param expr the indexing expression.
-     * @return expr - 1 or ExprColon
-     */
-    private Expr indexedBy(Expr expr) {
-        return expr;
-//        if (expr instanceof ExprColon)
-//                return expr;
-//        return new ExprBinaryOp("-", expr, new ExprInt(1));
-    }
-
-
-    /**
      * MATLAB assignments of the form:
      *   m(i1, i2, ..., in) = x
      * @param tirStmt
@@ -260,7 +245,7 @@ public class JSASTGenerator {
 
         ExprArray indices = new ExprArray();
         for (ast.Expr expr: indicesList) {
-            indices.addValue(indexedBy(genExpr(expr)));
+            indices.addValue(genExpr(expr));
         }
 
         List<Expr> args = new List<>(new ExprVar(lhs), indices, new ExprVar(rhs));
