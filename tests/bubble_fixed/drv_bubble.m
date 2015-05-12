@@ -1,4 +1,5 @@
-function drv_bubble(size)
+function drv_bubble(ignored)
+  size = 10000;
   A = rand(1, size);
   y = bubble(A);
 

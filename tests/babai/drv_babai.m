@@ -1,12 +1,12 @@
 function drv_babai(scale)
 
   if scale > 0
+      A=rand(scale,scale);
+      y=rand(scale,1);
     for i = 1 : scale
-      A=randn(10,10);
-      y=randn(10,1);
       z=babai(A,y);
-      disp(1);
     end
+      disp(1);
   else
     A = [0.5377   1.8339   -2.2588  0.8622   0.3188   -1.3077  -0.4336  0.3426   3.5784   2.7694
          -1.3499  3.0349   0.7254   -0.0631  0.7147   -0.2050  -0.1241  1.4897   1.4090   1.4172
