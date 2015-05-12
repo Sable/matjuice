@@ -13,21 +13,7 @@ endef
 
 export MATJUICE_SCRIPT
 
-SRC :=								\
-	./src/matjuice/Main.java				\
-	./src/matjuice/pretty/PrettyText.java			\
-	./src/matjuice/pretty/Pretty.java			\
-	./src/matjuice/pretty/Pair.java				\
-	./src/matjuice/pretty/PrettyConcat.java			\
-	./src/matjuice/pretty/PrettyBase.java			\
-	./src/matjuice/pretty/PrettyLine.java			\
-	./src/matjuice/pretty/PrettyIndent.java			\
-	./src/matjuice/codegen/JSASTGenerator.java		\
-	./src/matjuice/transformers/JSAddVarDecls.java		\
-	./src/matjuice/transformers/JSRenameBuiltins.java	\
-	./src/matjuice/transformers/JSVisitor.java		\
-	./src/matjuice/transformers/JSAddVarDeclsVisitor.java	\
-	./src/matjuice/transformers/JSRenameBuiltinsVisitor.java
+SRC_FILES := $(shell find . -type f -name '*.java')
 
 all: matjuice.jar matjuice.sh jslib
 
@@ -41,7 +27,7 @@ matjuice.sh: matjuice.jar
 jslib: src/matjuice/lib/lib.sjs
 	sjs -o $(GEN_DIR)/lib.js -r $<
 
-matjuice: $(SRC)
+matjuice: $(SRC_FILES)
 	mkdir -p $(BUILD_DIR)
 	javac -d $(BUILD_DIR) -cp $(NATLAB_PATH)/McLabCore.jar $(GEN_DIR)/matjuice/jsast/*.java $^
 
