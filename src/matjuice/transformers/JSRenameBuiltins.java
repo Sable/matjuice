@@ -77,15 +77,15 @@ public class JSRenameBuiltins {
 
         if (node instanceof ExprCall) {
             ExprCall call = (ExprCall) node;
-            if (call.getExpr() instanceof ExprVar) {
-                ExprVar var = (ExprVar) call.getExpr();
+            if (call.getExpr() instanceof ExprId) {
+                ExprId var = (ExprId) call.getExpr();
 
                 if (Builtin.getInstance(var.getName()) != null) {
                     // Keep in a list which arguments are scalar and which
                     // aren't.
                     ArrayList<Boolean> scalar_arguments = new ArrayList<>();
                     for (Expr e : call.getArguments()) {
-                        ExprVar arg = (ExprVar) e;
+                        ExprId arg = (ExprId) e;
                         AggrValue<BasicMatrixValue> val = analysis
                                 .getNodeList().get(index).getAnalysis()
                                 .getCurrentOutSet().get(arg.getName())
@@ -114,7 +114,7 @@ public class JSRenameBuiltins {
                             }
                         }
                         new_node = new ExprCall(
-                                new ExprVar("mc_" + var.getName() + (suffix.equals("") ? "" : "_" + suffix)),
+                                new ExprId("mc_" + var.getName() + (suffix.equals("") ? "" : "_" + suffix)),
                                 call.getArgumentList()
                                 );
                     }

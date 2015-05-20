@@ -14,72 +14,36 @@
  *  limitations under the License.
  */
 
-Program ::= Function:Function*;
-
-Function ::= [FunctionName:FunctionName] Param:Parameter* StmtBlock:StmtBlock;
-
+Program      ::= Function:Function*;
+Function     ::= [FunctionName:FunctionName] Param:Parameter* StmtBlock:StmtBlock;
 FunctionName ::= <Name:String>;
-
-Parameter ::= <Name:String>;
-
+Parameter    ::= <Name:String>;
 
 
 abstract Stmt;
-
-StmtBlock:Stmt ::= Stmt:Stmt*;
-
-StmtBlockNoBraces:StmtBlock ;
-
-StmtExpr:Stmt ::= Expr:Expr;
-
-StmtNull:Stmt ;
-
-StmtReturn:Stmt ::= [Expr:Expr];
-
-StmtIfThenElse:Stmt ::= Cond:Expr Then:Stmt [Else:Stmt];
-
-StmtWhile:Stmt ::= Cond:Expr Body:Stmt;
-
-StmtFor:Stmt ::= Init:Expr Test:Expr Update:Expr Body:Stmt;
-
-StmtVarDecl:Stmt ::= Var:ExprVar [Init:Expr];
-
-StmtGlobalDecl:Stmt ::= Var:ExprVar*;
-
+StmtBlock:Stmt      ::= <Braces:Boolean> Stmt:Stmt*;
+StmtExpr:Stmt       ::= Expr:Expr;
+StmtReturn:Stmt     ::= [Expr:Expr];
+StmtIfThenElse:Stmt ::= Cond:Expr Then:StmtBlock Else:StmtBlock;
+StmtWhile:Stmt      ::= Cond:Expr Body:StmtBlock;
+StmtFor:Stmt        ::= Init:Expr Test:Expr Update:Expr Body:StmtBlock;
+StmtVarDecl:Stmt    ::= <Id:String> [Init:Expr];
+StmtComment:Stmt    ::= <Text:String>;
 StmtBreak:Stmt ;
-
 StmtContinue:Stmt ;
-
-StmtComment:Stmt ::= <Text:String>;
-
 StmtEmpty:Stmt ;
 
 
-
 abstract Expr;
-
-ExprInt:Expr ::= <Value:int>;
-
-ExprNum:Expr ::= <Value:double>;
-
-ExprString:Expr ::= <Value:String>;
-
-ExprBoolean:Expr ::= <Value:Boolean>;
-
-ExprArray:Expr ::= Value:Expr*;
-
-ExprCall:Expr ::= Expr:Expr Argument:Expr*;
-
-ExprLambda:Expr ::= Function:Function;
-
-ExprAssign:Expr ::= LHS:Expr Expr:Expr;
-
-ExprUnaryOp:Expr ::= <Op:String> Expr:Expr;
-
-ExprBinaryOp:Expr ::= <Op:String> Expr1:Expr Expr2:Expr;
-
-ExprVar:Expr ::= <Name:String>;
-
+ExprInt:Expr         ::= <Value:int>;
+ExprFloat:Expr       ::= <Value:double>;
+ExprString:Expr      ::= <Value:String>;
+ExprBoolean:Expr     ::= <Value:Boolean>;
+ExprCall:Expr        ::= Expr:Expr Argument:Expr*;
+ExprAssign:Expr      ::= LHS:Expr RHS:Expr;
+ExprUnaryOp:Expr     ::= <Op:String> Expr:Expr;
+ExprBinaryOp:Expr    ::= <Op:String> LHS:Expr RHS:Expr;
+ExprId:Expr          ::= <Name:String>;
+ExprArray:Expr       ::= Expr:Expr*;
 ExprPropertyGet:Expr ::= Expr:Expr Property:Expr;
-
 ExprColon:Expr ;

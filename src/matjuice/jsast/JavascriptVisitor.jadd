@@ -32,17 +32,9 @@ aspect Visitor {
     public <T> T StmtBlock.accept(JSVisitor<T> visitor) {
         return visitor.visitStmtBlock(this);
     }
-    
-    public <T> T StmtBlockNoBraces.accept(JSVisitor<T> visitor) {
-        return visitor.visitStmtBlockNoBraces(this);
-    }
 
     public <T> T StmtExpr.accept(JSVisitor<T> visitor) {
         return visitor.visitStmtExpr(this);
-    }
-
-    public <T> T StmtNull.accept(JSVisitor<T> visitor) {
-        return visitor.visitStmtNull(this);
     }
 
     public <T> T StmtReturn.accept(JSVisitor<T> visitor) {
@@ -59,10 +51,6 @@ aspect Visitor {
 
     public <T> T StmtFor.accept(JSVisitor<T> visitor) {
         return visitor.visitStmtFor(this);
-    }
-
-    public <T> T StmtGlobalDecl.accept(JSVisitor<T> visitor) {
-        return visitor.visitStmtGlobalDecl(this);
     }
 
     public <T> T StmtBreak.accept(JSVisitor<T> visitor) {
@@ -89,8 +77,8 @@ aspect Visitor {
         return visitor.visitExprInt(this);
     }
 
-    public <T> T ExprNum.accept(JSVisitor<T> visitor) {
-        return visitor.visitExprNum(this);
+    public <T> T ExprFloat.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprFloat(this);
     }
 
     public <T> T ExprString.accept(JSVisitor<T> visitor) {
@@ -100,17 +88,13 @@ aspect Visitor {
     public <T> T ExprBoolean.accept(JSVisitor<T> visitor) {
         return visitor.visitExprBoolean(this);
     }
-
+    
     public <T> T ExprArray.accept(JSVisitor<T> visitor) {
-        return visitor.visitExprArray(this);
+    	return visitor.visitExprArray(this);
     }
 
     public <T> T ExprCall.accept(JSVisitor<T> visitor) {
         return visitor.visitExprCall(this);
-    }
-
-    public <T> T ExprLambda.accept(JSVisitor<T> visitor) {
-        return visitor.visitExprLambda(this);
     }
 
     public <T> T ExprAssign.accept(JSVisitor<T> visitor) {
@@ -125,8 +109,8 @@ aspect Visitor {
         return visitor.visitExprBinaryOp(this);
     }
 
-    public <T> T ExprVar.accept(JSVisitor<T> visitor) {
-        return visitor.visitExprVar(this);
+    public <T> T ExprId.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprId(this);
     }
 
     public <T> T ExprPropertyGet.accept(JSVisitor<T> visitor) {

@@ -65,27 +65,16 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
     @Override
     public ASTNode visitStmtBlock(StmtBlock stmt) {
         StmtBlock new_stmt = new StmtBlock();
+        new_stmt.setBraces(stmt.getBraces());
         for (Stmt child: stmt.getStmtList())
             new_stmt.addStmt((Stmt) child.accept(this));
         return new_stmt;
     }
 
-    @Override
-    public ASTNode visitStmtBlockNoBraces(StmtBlockNoBraces stmt) {
-        StmtBlockNoBraces new_stmt = new StmtBlockNoBraces();
-        for (Stmt child: stmt.getStmtList())
-            new_stmt.addStmt((Stmt) child.accept(this));
-        return new_stmt;
-    }
 
     @Override
     public ASTNode visitStmtExpr(StmtExpr stmt) {
         return new StmtExpr((Expr) stmt.getExpr().accept(this));
-    }
-
-    @Override
-    public ASTNode visitStmtNull(StmtNull stmt) {
-        return stmt;
     }
 
     @Override
@@ -100,18 +89,16 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
     @Override
     public ASTNode visitStmtIfThenElse(StmtIfThenElse stmt) {
         Expr new_cond = (Expr) stmt.getCond().accept(this);
-        Stmt new_then = (Stmt) stmt.getThen().accept(this);
-        Stmt new_else = null;
-        if (stmt.hasElse())
-            new_else = (Stmt) stmt.getElse().accept(this);
-        return new StmtIfThenElse(new_cond, new_then, new_else == null ? new Opt<>() : new Opt<>(new_else));
+        StmtBlock new_then = (StmtBlock) stmt.getThen().accept(this);
+        StmtBlock new_else = (StmtBlock) stmt.getElse().accept(this);
+        return new StmtIfThenElse(new_cond, new_then, new_else);
     }
 
     @Override
     public ASTNode visitStmtWhile(StmtWhile stmt) {
         return new StmtWhile(
                 (Expr) stmt.getCond().accept(this),
-                (Stmt) stmt.getBody().accept(this)
+                (StmtBlock) stmt.getBody().accept(this)
                 );
     }
 
@@ -121,13 +108,8 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
                 (Expr) stmt.getInit().accept(this),
                 (Expr) stmt.getTest().accept(this),
                 (Expr) stmt.getUpdate().accept(this),
-                (Stmt) stmt.getBody().accept(this)
+                (StmtBlock) stmt.getBody().accept(this)
                 );
-    }
-
-    @Override
-    public ASTNode visitStmtGlobalDecl(StmtGlobalDecl stmt) {
-        return stmt;
     }
 
     @Override
@@ -154,7 +136,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
     public ASTNode visitStmtVarDecl(StmtVarDecl stmt) {
         if (stmt.hasInit()) {
             return new StmtVarDecl(
-                    stmt.getVar(),
+                    stmt.getId(),
                     new Opt<>((Expr) stmt.getInit().accept(this))
                     );
         }
@@ -167,7 +149,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
     }
 
     @Override
-    public ASTNode visitExprNum(ExprNum expr) {
+    public ASTNode visitExprFloat(ExprFloat expr) {
         return expr;
     }
 
@@ -205,15 +187,10 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
     }
 
     @Override
-    public ASTNode visitExprLambda(ExprLambda expr) {
-        return new ExprLambda((Function) expr.getFunction().accept(this));
-    }
-
-    @Override
     public ASTNode visitExprAssign(ExprAssign expr) {
         return new ExprAssign(
                 (Expr) expr.getLHS().accept(this),
-                (Expr) expr.getExpr().accept(this)
+                (Expr) expr.getRHS().accept(this)
                 );
     }
 
@@ -229,13 +206,13 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
     public ASTNode visitExprBinaryOp(ExprBinaryOp expr) {
         return new ExprBinaryOp(
                 expr.getOp(),
-                (Expr) expr.getExpr1().accept(this),
-                (Expr) expr.getExpr2().accept(this)
+                (Expr) expr.getLHS().accept(this),
+                (Expr) expr.getRHS().accept(this)
                 );
     }
 
     @Override
-    public ASTNode visitExprVar(ExprVar expr) {
+    public ASTNode visitExprId(ExprId expr) {
         if (callArgs == null) return expr;
 
         if (Builtin.getInstance(expr.getName()) != null) {
@@ -243,7 +220,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
             // aren't.
             ArrayList<Boolean> scalar_arguments = new ArrayList<>();
             for (Expr e : callArgs) {
-                ExprVar arg = (ExprVar) e;
+                ExprId arg = (ExprId) e;
                 AggrValue<BasicMatrixValue> val = analysis
                         .getNodeList()
                         .get(index)

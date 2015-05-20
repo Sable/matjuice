@@ -54,6 +54,7 @@ public class JSASTGenerator {
 
         // Add body statements.
         StmtBlock stmts = new StmtBlock();
+        stmts.setBraces(true);
         for (ast.Stmt astStmt: tirFunc.getStmts()) {
             TIRStmt tirStmt = (TIRStmt) astStmt;
             stmts.addStmt(genStmt(tirStmt));
@@ -81,7 +82,7 @@ public class JSASTGenerator {
     private Stmt makeStmtReturn(ast.Function astFunc) {
         List<Expr> returnNames = new List<>();
         for (ast.Name outParam: astFunc.getOutputParamList()) {
-            returnNames.add(new ExprVar(outParam.getID()));
+            returnNames.add(new ExprId(outParam.getID()));
         }
 
         switch (returnNames.getNumChild()) {
@@ -121,7 +122,6 @@ public class JSASTGenerator {
         // Other statements.
         // (Missing: TIRPersistentStmt)
         if (tirStmt instanceof TIRCommentStmt) return genCommentStmt((TIRCommentStmt) tirStmt);
-        if (tirStmt instanceof TIRGlobalStmt) return genGlobalStmt((TIRGlobalStmt) tirStmt);
 
         throw new UnsupportedOperationException(
                 String.format("Statement not supported: %d. %s [%s]",
@@ -139,8 +139,9 @@ public class JSASTGenerator {
      * @param tirStmts the statement list
      * @return a StmtBlock
      */
-    private Stmt genStmtList(TIRStatementList tirStmts) {
+    private StmtBlock genStmtList(TIRStatementList tirStmts) {
         StmtBlock stmts = new StmtBlock();
+        stmts.setBraces(true);
         for (int i = 0; i < tirStmts.getNumChild(); ++i) {
             TIRStmt currStmt = (TIRStmt) tirStmts.getChild(i);
             stmts.addStmt(genStmt(currStmt));
@@ -158,7 +159,8 @@ public class JSASTGenerator {
      */
     private String extractLHSName(TIRAbstractAssignToVarStmt tirStmt) {
         String lhs = null;
-        for (String name: tirStmt.getLValues()) lhs = name;
+        for (String name: tirStmt.getLValues())
+            lhs = name;
         return lhs;
     }
 
@@ -176,7 +178,7 @@ public class JSASTGenerator {
     private Stmt genAssignToVarStmt(TIRAbstractAssignToVarStmt tirStmt) {
         String lhs = extractLHSName(tirStmt);
         ast.Expr rhs = tirStmt.getRHS();
-        return new StmtExpr(new ExprAssign(new ExprVar(lhs), genExpr(rhs)));
+        return new StmtExpr(new ExprAssign(new ExprId(lhs), genExpr(rhs)));
     }
 
 
@@ -196,14 +198,15 @@ public class JSASTGenerator {
      * @return A statement block (without braces) containing the call + assignments.
      */
     private Stmt genAssignToListStmt(TIRAbstractAssignToListStmt tirStmt) {
-        StmtBlockNoBraces stmts = new StmtBlockNoBraces();
+        StmtBlock stmts = new StmtBlock();
+        stmts.setBraces(false);
         Expr call =
-                tirStmt instanceof TIRCallStmt
-                ? genCallExpr((ast.ParameterizedExpr) tirStmt.getRHS())
-                : genArrayGetExpr(
-                        (ast.ParameterizedExpr) tirStmt.getRHS(),
-                        tirStmt.getTargets()
-                        );
+          tirStmt instanceof TIRCallStmt
+          ? genCallExpr((ast.ParameterizedExpr) tirStmt.getRHS())
+          : genArrayGetExpr(
+              (ast.ParameterizedExpr) tirStmt.getRHS(),
+              tirStmt.getTargets()
+              );
 
         switch (tirStmt.getNumTargets()) {
         case 0:
@@ -211,18 +214,21 @@ public class JSASTGenerator {
             break;
 
         case 1:
-            stmts.addStmt(new StmtExpr(
-                    new ExprAssign(new ExprVar(tirStmt.getTargetName().getID()), call)));
+            stmts.addStmt(new StmtExpr(new ExprAssign(new ExprId(tirStmt.getTargetName().getID()), call)));
             break;
 
         default:
-            ExprVar tempVar = new ExprVar(TempFactory.genFreshTempString());
+            ExprId tempVar = new ExprId(TempFactory.genFreshTempString());
             stmts.addStmt(new StmtExpr(new ExprAssign(tempVar, call)));
             int i = 0;
             for (ast.Expr target: tirStmt.getTargets()) {
-                stmts.addStmt(new StmtExpr(new ExprAssign(
-                        new ExprVar(((ast.NameExpr) target).getName().getID()),
-                        new ExprPropertyGet(tempVar, new ExprInt(i)))));
+                stmts.addStmt(
+                    new StmtExpr(
+                        new ExprAssign(
+                            new ExprId(((ast.NameExpr) target).getName().getID()),
+                            new ExprPropertyGet(tempVar, new ExprInt(i)))
+                        )
+                    );
                 i++;
             }
 
@@ -245,13 +251,13 @@ public class JSASTGenerator {
 
         ExprArray indices = new ExprArray();
         for (ast.Expr expr: indicesList) {
-            indices.addValue(genExpr(expr));
+            indices.addExpr(genExpr(expr));
         }
 
-        List<Expr> args = new List<>(new ExprVar(lhs), indices, new ExprVar(rhs));
+        List<Expr> args = new List<>(new ExprId(lhs), indices, new ExprId(rhs));
 
-        ExprCall setter = new ExprCall(new ExprVar("mc_array_set"), args);
-        return new StmtExpr(new ExprAssign(new ExprVar(lhs), setter));
+        ExprCall setter = new ExprCall(new ExprId("mc_array_set"), args);
+        return new StmtExpr(new ExprAssign(new ExprId(lhs), setter));
     }
 
 
@@ -267,13 +273,15 @@ public class JSASTGenerator {
      */
     private Stmt genWhileStmt(TIRWhileStmt tirWhile) {
         StmtBlock body = new StmtBlock();
+        body.setBraces(true);
         for (ast.Stmt stmt: tirWhile.getStmtList()) {
             body.addStmt(genStmt((TIRStmt) stmt));
         }
 
         return new StmtWhile(
-                genExpr(tirWhile.getExpr()),
-                body);
+            genExpr(tirWhile.getExpr()),
+            body
+            );
     }
 
 
@@ -289,14 +297,14 @@ public class JSASTGenerator {
      */
     private Stmt genForStmt(TIRForStmt tirFor) {
         // Generate the loop variables
-        ExprVar iterVar = new ExprVar(tirFor.getLoopVarName().getID());
-        ExprVar lowerBound = new ExprVar(tirFor.getLowerName().getID());
-        ExprVar upperBound = new ExprVar(tirFor.getUpperName().getID());
-        Expr incr = tirFor.hasIncr() ? new ExprVar(tirFor.getIncName().getID()) : new ExprInt(1);
+        ExprId iterVar = new ExprId(tirFor.getLoopVarName().getID());
+        ExprId lowerBound = new ExprId(tirFor.getLowerName().getID());
+        ExprId upperBound = new ExprId(tirFor.getUpperName().getID());
+        Expr incr = tirFor.hasIncr() ? new ExprId(tirFor.getIncName().getID()) : new ExprInt(1);
 
         LoopDirection dir = loopDir(tirFor);
 
-        ExprVar genericCmp = new ExprVar(TempFactory.genFreshTempString());
+        ExprId genericCmp = new ExprId(TempFactory.genFreshTempString());
         Stmt preamble = new StmtEmpty();
         // If the direction of the loop cannot be determined, add a preamble to select the correct comparison operator.
         if (dir == LoopDirection.Unknown) {
@@ -305,20 +313,21 @@ public class JSASTGenerator {
             // if incr < 0, use mc_ge
             // if incr = 0, always return false
             Expr incrPositive = new ExprBinaryOp(">", incr, new ExprInt(0));
-            StmtExpr incrPositiveBody = new StmtExpr(new ExprAssign(genericCmp, new ExprVar("mc_le_SS")));
+            StmtExpr incrPositiveBody = new StmtExpr(new ExprAssign(genericCmp, new ExprId("mc_le_SS")));
 
             Expr incrNegative = new ExprBinaryOp("<", incr, new ExprInt(0));
-            StmtExpr incrNegativeBody = new StmtExpr(new ExprAssign(genericCmp, new ExprVar("mc_ge_SS")));
+            StmtExpr incrNegativeBody = new StmtExpr(new ExprAssign(genericCmp, new ExprId("mc_ge_SS")));
 
             Expr incrZero = new ExprBinaryOp("===", incr, new ExprInt(0));
-            StmtExpr incrZeroBody = new StmtExpr(new ExprAssign(genericCmp, new ExprVar("mc_const_false")));
+            StmtExpr incrZeroBody = new StmtExpr(new ExprAssign(genericCmp, new ExprId("mc_const_false")));
 
-            preamble = new StmtBlockNoBraces(
+            preamble = new StmtBlock(
+                    false,
                     new List<Stmt>(
-                            new StmtIfThenElse(incrPositive, incrPositiveBody, new Opt<Stmt>()),
-                            new StmtIfThenElse(incrNegative, incrNegativeBody, new Opt<Stmt>()),
-                            new StmtIfThenElse(incrZero, incrZeroBody, new Opt<Stmt>())
-                            )
+                        new StmtIfThenElse(incrPositive, new StmtBlock(true, new List<Stmt>(incrPositiveBody)), new StmtBlock()),
+                        new StmtIfThenElse(incrNegative, new StmtBlock(true, new List<Stmt>(incrNegativeBody)), new StmtBlock()),
+                        new StmtIfThenElse(incrZero, new StmtBlock(true, new List<Stmt>(incrZeroBody)), new StmtBlock())
+                        )
                     );
         }
 
@@ -338,22 +347,24 @@ public class JSASTGenerator {
 
         // Create the body block of the for loop and add the statements to the body.
         StmtBlock body = new StmtBlock();
+        body.setBraces(true);
         for (ast.Stmt stmt: tirFor.getStmtList()) {
             body.addStmt(genStmt((TIRStmt) stmt));
         }
 
         // Return the preamble followed by the for loop
-        return new StmtBlockNoBraces(
-            new List<Stmt>(
-                preamble,
-                new StmtFor(
-                    new ExprAssign(iterVar, lowerBound),
-                    cmp,
-                    new ExprAssign(iterVar, new ExprBinaryOp("+", iterVar, incr)),
-                    body
-                    )
-                )
-            );
+        return new StmtBlock(
+                false,
+                new List<Stmt>(
+                        preamble,
+                        new StmtFor(
+                                new ExprAssign(iterVar, lowerBound),
+                                cmp,
+                                new ExprAssign(iterVar, new ExprBinaryOp("+", iterVar, incr)),
+                                body
+                                )
+                        )
+                );
     }
 
 
@@ -365,14 +376,10 @@ public class JSASTGenerator {
      * @return a StmtIfThenElse node
      */
     private Stmt genIfStmt(TIRIfStmt tirIf) {
-        Expr condVar = new ExprVar(tirIf.getConditionVarName().getID());
-        Stmt ifBlock = genStmtList(tirIf.getIfStatements());
-        boolean hasElseStatements = tirIf.getElseStatements().getNumChild() > 0;
-        Opt<Stmt> elseBlock =
-                hasElseStatements
-                ? new Opt<Stmt>(genStmtList(tirIf.getElseStatements()))
-                : new Opt<Stmt>();
-        return new StmtIfThenElse(condVar, ifBlock, elseBlock);
+        Expr condVar = new ExprId(tirIf.getConditionVarName().getID());
+        StmtBlock thenBlock = genStmtList(tirIf.getIfStatements());
+        StmtBlock elseBlock = genStmtList(tirIf.getElseStatements());
+        return new StmtIfThenElse(condVar, thenBlock, elseBlock);
     }
 
 
@@ -409,21 +416,6 @@ public class JSASTGenerator {
         Stmt returnStmt = makeStmtReturn(astFunc);
         return returnStmt;
     }
-
-
-    /**
-     * Convert a MATLAB global declaration to a StmtGlobalDecl in our AST;
-     * JavaScript doesn't have such declarations, however we include them
-     * to facilitate some analyses.
-     */
-    private Stmt genGlobalStmt(TIRGlobalStmt tirGlobal) {
-        StmtGlobalDecl globalDecl = new StmtGlobalDecl();
-        for (ast.Name name: tirGlobal.getNameList()) {
-            globalDecl.addVar(new ExprVar(name.getID()));
-        }
-        return globalDecl;
-    }
-
 
     private Stmt genCommentStmt(TIRCommentStmt tirComment) {
         if (tirComment.hasComments())
@@ -470,8 +462,8 @@ public class JSASTGenerator {
      * @param expr
      * @return
      */
-    private ExprNum genFPLiteralExpr(ast.FPLiteralExpr expr) {
-        return new ExprNum(Double.parseDouble(expr.getValue().getText()));
+    private ExprFloat genFPLiteralExpr(ast.FPLiteralExpr expr) {
+        return new ExprFloat(Double.parseDouble(expr.getValue().getText()));
     }
 
 
@@ -487,8 +479,8 @@ public class JSASTGenerator {
         return new ExprString(expr.getValue());
     }
 
-    private ExprVar genNameExpr(ast.NameExpr expr) {
-        return new ExprVar(expr.getName().getID());
+    private ExprId genNameExpr(ast.NameExpr expr) {
+        return new ExprId(expr.getName().getID());
     }
 
     /**
@@ -504,7 +496,7 @@ public class JSASTGenerator {
     private Expr genCallExpr(ast.ParameterizedExpr expr) {
         String funcName = expr.getVarName();
         ExprCall call = new ExprCall();
-        ExprVar funName = new ExprVar(funcName);
+        ExprId funName = new ExprId(funcName);
         call.setExpr(funName);
         for (ast.Expr arg: expr.getArgList()) {
             call.addArgument(genExpr(arg));
@@ -532,11 +524,11 @@ public class JSASTGenerator {
         ExprArray indices = new ExprArray();
         for (ast.Expr index: expr.getArgList()) {
             if (isColonExpr(index)) {
-                indices.addValue(genExpr(index));
+                indices.addExpr(genExpr(index));
             }
             else {
                 Expr slice = convertToColonExpr(genExpr(index));
-                indices.addValue(slice);
+                indices.addExpr(slice);
             }
         }
 
@@ -554,7 +546,7 @@ public class JSASTGenerator {
         for (DimValue dv: val.getShape().getDimensions()) {
             Integer dim = dv.getIntValue();
             dimensions_known_statically = dimensions_known_statically && dim != null;
-            result_dimensions.addValue(dim == null ? new ExprVar("null") : new ExprInt(dim));
+            result_dimensions.addExpr(dim == null ? new ExprId("null") : new ExprInt(dim));
             if (dimensions_known_statically)
                 result_size *= dim;
             else
@@ -563,17 +555,17 @@ public class JSASTGenerator {
 
 
         // Step 3: generate a function call, specializing for statically known dimensions.
-        Integer num_dimensions = result_dimensions.getNumValue();
-        Integer num_indices = indices.getNumValue();
+        Integer num_dimensions = result_dimensions.getNumExpr();
+        Integer num_indices = indices.getNumExpr();
         if ((num_dimensions == 1 || num_dimensions == 2) && dimensions_known_statically) {
             return new ExprCall(
-                    new ExprVar("mc_array_slice_static_" + num_indices),
+                    new ExprId("mc_array_slice_static_" + num_indices),
                     new List<Expr>(genExpr(expr.getTarget()), new ExprInt(result_size), new ExprInt(num_dimensions), result_dimensions, indices)
                     );
         }
         else if (num_dimensions == 1 || num_dimensions == 2) {
             return new ExprCall(
-                    new ExprVar("mc_array_slice_dynamic_" + num_indices),
+                    new ExprId("mc_array_slice_dynamic_" + num_indices),
                     new List<Expr>(genExpr(expr.getTarget()), result_dimensions, indices)
                     );
         }
@@ -584,16 +576,16 @@ public class JSASTGenerator {
     private Expr genSingleElementIndexing(ast.ParameterizedExpr expr) {
         ExprArray indices = new ExprArray();
         for (ast.Expr arg: expr.getArgList()) {
-            indices.addValue(genExpr(arg));
+            indices.addExpr(genExpr(arg));
         }
-        List<Expr> args = new List<Expr>(new ExprVar(expr.getVarName()), indices);
-        return new ExprCall(new ExprVar("mc_array_get"), args);
+        List<Expr> args = new List<Expr>(new ExprId(expr.getVarName()), indices);
+        return new ExprCall(new ExprId("mc_array_get"), args);
     }
 
 
     private Expr convertToColonExpr(Expr e) {
         List<Expr> args = new List<Expr>(e, e);
-        return new ExprCall(new ExprVar("mc_colon"), args);
+        return new ExprCall(new ExprId("mc_colon"), args);
     }
 
 

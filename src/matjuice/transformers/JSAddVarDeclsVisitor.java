@@ -31,7 +31,7 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
         StmtBlock sb = f.getStmtBlock();
         List<Stmt> stmts = sb.getStmtList();
         for (String var: vars) {
-            stmts.insertChild(new StmtVarDecl(new ExprVar(var), new Opt<>()), 0);
+            stmts.insertChild(new StmtVarDecl(var, new Opt<>()), 0);
         }
     }
 
@@ -62,22 +62,8 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
     }
 
     @Override
-    public Set<String> visitStmtBlockNoBraces(StmtBlockNoBraces stmt) {
-        Set<String> locals = new HashSet<>();
-        for (Stmt child: stmt.getStmtList()) {
-            locals.addAll(child.accept(this));
-        }
-        return locals;
-    }
-
-    @Override
     public Set<String> visitStmtExpr(StmtExpr stmt) {
         return stmt.getExpr().accept(this);
-    }
-
-    @Override
-    public Set<String> visitStmtNull(StmtNull stmt) {
-        return Collections.emptySet();
     }
 
     @Override
@@ -90,8 +76,7 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
         Set<String> locals = new HashSet<>();
         locals.addAll(stmt.getCond().accept(this));
         locals.addAll(stmt.getThen().accept(this));
-        if (stmt.hasElse())
-            locals.addAll(stmt.getElse().accept(this));
+        locals.addAll(stmt.getElse().accept(this));
         return locals;
     }
 
@@ -111,11 +96,6 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
         locals.addAll(stmt.getUpdate().accept(this));
         locals.addAll(stmt.getBody().accept(this));
         return locals;
-    }
-
-    @Override
-    public Set<String> visitStmtGlobalDecl(StmtGlobalDecl stmt) {
-        return Collections.emptySet();
     }
 
     @Override
@@ -152,7 +132,7 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
     }
 
     @Override
-    public Set<String> visitExprNum(ExprNum expr) {
+    public Set<String> visitExprFloat(ExprFloat expr) {
         return Collections.emptySet();
     }
 
@@ -169,7 +149,7 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
     @Override
     public Set<String> visitExprArray(ExprArray expr) {
         Set<String> acc = Collections.emptySet();
-        for (Expr subexpr: expr.getValueList())
+        for (Expr subexpr: expr.getExprList())
             acc.addAll(subexpr.accept(this));
         return acc;
     }
@@ -184,16 +164,11 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
     }
 
     @Override
-    public Set<String> visitExprLambda(ExprLambda expr) {
-        return Collections.emptySet();
-    }
-
-    @Override
     public Set<String> visitExprAssign(ExprAssign expr) {
         assignNestingLevel++;
         Set<String> lhs = expr.getLHS().accept(this);
         assignNestingLevel--;
-        Set<String> rhs = expr.getExpr().accept(this);
+        Set<String> rhs = expr.getRHS().accept(this);
         lhs.addAll(rhs);
         return lhs;
     }
@@ -206,13 +181,13 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
     @Override
     public Set<String> visitExprBinaryOp(ExprBinaryOp expr) {
         Set<String> acc = new HashSet<>();
-        acc.addAll(expr.getExpr1().accept(this));
-        acc.addAll(expr.getExpr2().accept(this));
+        acc.addAll(expr.getLHS().accept(this));
+        acc.addAll(expr.getRHS().accept(this));
         return acc;
     }
 
     @Override
-    public Set<String> visitExprVar(ExprVar expr) {
+    public Set<String> visitExprId(ExprId expr) {
         Set<String> acc = new HashSet<>();
         if (assignNestingLevel > 0) {
             acc.add(expr.getName());

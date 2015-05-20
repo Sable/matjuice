@@ -29,14 +29,14 @@ import matjuice.jsast.List;
  *
  */
 public class JSAddVarDecls {
-    
+
     public static void apply(Function func) {
         Set<String> vars = getVars(func);
-        
+
         StmtBlock sb = func.getStmtBlock();
         List<Stmt> stmts = sb.getStmtList();
         for (String var: vars) {
-            stmts.insertChild(new StmtVarDecl(new ExprVar(var), new Opt<Expr>()), 0);
+            stmts.insertChild(new StmtVarDecl(var, new Opt<Expr>()), 0);
         }
     }
 
@@ -45,19 +45,17 @@ public class JSAddVarDecls {
      *   - Local variables
      *   - Global variables
      *   - Formal parameters
-     * and return locals \ (globals U params), which are the variables
+     * and return locals - params, which are the variables
      * that need to be declared.
      * @return the names of local variables that are assigned to.
      */
     public static Set<String> getVars(Function func) {
         Set<String> locals = getLocals(func);
-        Set<String> globals = getGlobals(func);
         Set<String> params =  new HashSet<String>();
         for (Parameter param: func.getParamList()) {
             params.add(param.getName());
         }
 
-        locals.removeAll(globals);
         locals.removeAll(params);
         return locals;
     }
@@ -73,32 +71,11 @@ public class JSAddVarDecls {
 
             if (child instanceof ExprAssign) {
                 ExprAssign assignment = (ExprAssign) child;
-                if (assignment.getLHS() instanceof ExprVar)
-                    vars.add(((ExprVar) assignment.getLHS()).getName());
+                if (assignment.getLHS() instanceof ExprId)
+                    vars.add(((ExprId) assignment.getLHS()).getName());
             }
             vars.addAll(getLocals(child));
         }
         return vars;
     }
-
-    /**
-     * Get all the  names of the globals.
-     * @return a set of strings of the global names.
-     */
-    private static Set<String> getGlobals(ASTNode node) {
-        Set<String> glos = new HashSet<>();
-        for (int i = 0; i < node.getNumChild(); ++i) {
-            ASTNode child = node.getChild(i);
-
-            if (child instanceof StmtGlobalDecl) {
-                StmtGlobalDecl globalDecl = (StmtGlobalDecl) child;
-                for (ExprVar exprVar: globalDecl.getVarList()) {
-                    glos.add(exprVar.getName());
-                }
-            }
-            glos.addAll(getGlobals(child));
-        }
-        return glos;
-    }
-
 }
