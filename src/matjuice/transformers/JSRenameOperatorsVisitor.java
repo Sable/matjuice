@@ -1,23 +1,7 @@
-/*
- *  Copyright 2014-2015, Vincent Foley-Bourgon, McGill University
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
-
 package matjuice.transformers;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 
 import natlab.tame.builtin.Builtin;
 import natlab.tame.valueanalysis.ValueAnalysis;
@@ -25,21 +9,26 @@ import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import matjuice.jsast.*;
 
-
 @SuppressWarnings("rawtypes")
-public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
-    /*
-     * Array of builtins that we should add a type suffix to. Mostly variadic
-     * functions.
-     */
-    private static String[] SPECIALIZED = { "plus", "minus", "mtimes", "rem",
-            "mod", "mrdivide", "lt", "le", "gt", "ge", "eq", "ne", "length",
-            "sin", "uminus", "exp", "rdivide", "round", "sqrt", "mpower", };
+public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
+    private static HashMap<String, String> binary_ops = new HashMap<>();
+    private static HashMap<String, String> unary_ops = new HashMap<>();
 
     static {
-        // The specialized functions are ordered so that we can run a binary
-        // search over them.
-        Arrays.sort(SPECIALIZED, (s, t) -> s.compareTo(t));
+        binary_ops.put("plus", "+");
+        binary_ops.put("minus", "-");
+        binary_ops.put("times", "*");
+        binary_ops.put("mtimes", "*");
+        binary_ops.put("mrdivide", "/");
+        binary_ops.put("rdivide", "/");
+        binary_ops.put("le", "<=");
+        binary_ops.put("lt", "<");
+        binary_ops.put("ge", ">=");
+        binary_ops.put("gt", ">");
+        binary_ops.put("eq", "===");
+        binary_ops.put("ne", "!==");
+
+        unary_ops.put("uminus", "-");
     }
 
     private ValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
@@ -47,13 +36,13 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
     private List<Expr> callArgs = null;
 
 
-    public JSRenameBuiltinsVisitor(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
+    public JSRenameOperatorsVisitor(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
         this.analysis = analysis;
         this.index = index;
     }
 
     public static Function apply(Function f, ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
-        JSRenameBuiltinsVisitor renamer = new JSRenameBuiltinsVisitor(analysis, index);
+        JSRenameOperatorsVisitor renamer = new JSRenameOperatorsVisitor(analysis, index);
         Function new_f = (Function) f.accept(renamer);
         return new_f;
     }
@@ -75,18 +64,18 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
 
     @Override
     public ASTNode visitStmtBlock(StmtBlock stmt) {
-        List<Stmt> new_stmts = new List<>();
+        StmtBlock new_stmt = new StmtBlock();
         for (Stmt child: stmt.getStmtList())
-            new_stmts.add((Stmt) child.accept(this));
-        return new StmtBlock(new_stmts);
+            new_stmt.addStmt((Stmt) child.accept(this));
+        return new_stmt;
     }
 
     @Override
     public ASTNode visitStmtBlockNoBraces(StmtBlockNoBraces stmt) {
-        List<Stmt> new_stmts = new List<>();
+        StmtBlockNoBraces new_stmt = new StmtBlockNoBraces();
         for (Stmt child: stmt.getStmtList())
-            new_stmts.add((Stmt) child.accept(this));
-        return new StmtBlockNoBraces(new_stmts);
+            new_stmt.addStmt((Stmt) child.accept(this));
+        return new_stmt;
     }
 
     @Override
@@ -102,22 +91,20 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
     @Override
     public ASTNode visitStmtReturn(StmtReturn stmt) {
         if (stmt.hasExpr()) {
-            return new StmtReturn(new Opt<Expr>((Expr) stmt.getExpr().accept(this)));
+            Expr expr = (Expr) stmt.getExpr().accept(this);
+            return new StmtReturn(new Opt<Expr>(expr));
         }
-        else {
-            return new StmtReturn();
-        }
+        return stmt;
     }
 
     @Override
     public ASTNode visitStmtIfThenElse(StmtIfThenElse stmt) {
-        StmtIfThenElse new_stmt = new StmtIfThenElse();
-        new_stmt.setCond((Expr) stmt.getCond().accept(this));
-        new_stmt.setThen((Stmt) stmt.getThen().accept(this));
-        if (stmt.hasElse()) {
-            new_stmt.setElse((Stmt) stmt.getElse().accept(this));
-        }
-        return new_stmt;
+        Expr new_cond = (Expr) stmt.getCond().accept(this);
+        Stmt new_then = (Stmt) stmt.getThen().accept(this);
+        Stmt new_else = null;
+        if (stmt.hasElse())
+            new_else = (Stmt) stmt.getElse().accept(this);
+        return new StmtIfThenElse(new_cond, new_then, new_else == null ? new Opt<>() : new Opt<>(new_else));
     }
 
     @Override
@@ -165,12 +152,13 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
 
     @Override
     public ASTNode visitStmtVarDecl(StmtVarDecl stmt) {
-        StmtVarDecl new_stmt = new StmtVarDecl();
-        new_stmt.setVar((ExprVar) stmt.getVar().accept(this));
         if (stmt.hasInit()) {
-            new_stmt.setInit((Expr) stmt.getInit().accept(this));
+            return new StmtVarDecl(
+                    stmt.getVar(),
+                    new Opt<>((Expr) stmt.getInit().accept(this))
+                    );
         }
-        return new_stmt;
+        return stmt;
     }
 
     @Override
@@ -201,19 +189,19 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
     @Override
     public ASTNode visitExprCall(ExprCall expr) {
         callArgs = expr.getArgumentList();
-        ASTNode new_name = expr.getExpr().accept(this);
+        ASTNode new_expr = expr.getExpr().accept(this);
         callArgs = null;
 
-        // If the variable was the name of an operator, return the new node
-        if (new_name instanceof ExprCall) {
-            return new_name;
+        if (new_expr instanceof ExprBinaryOp || new_expr instanceof ExprUnaryOp) {
+            return new_expr;
         }
 
-        ExprCall new_expr = new ExprCall();
-        new_expr.setExpr((Expr) new_name);
-        for (Expr arg: expr.getArgumentList())
-            new_expr.addArgument((Expr) arg.accept(this));
-        return new_expr;
+        ExprCall new_call = new ExprCall();
+        new_call.setExpr((Expr) new_expr);
+        for (Expr arg: expr.getArgumentList()) {
+            new_call.addArgument((Expr) arg.accept(this));
+        }
+        return new_call;
     }
 
     @Override
@@ -250,9 +238,8 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
     public ASTNode visitExprVar(ExprVar expr) {
         if (callArgs == null) return expr;
 
-        Expr new_expr = expr;
         if (Builtin.getInstance(expr.getName()) != null) {
-         // Keep in a list which arguments are scalar and which
+            // Keep in a list which arguments are scalar and which
             // aren't.
             ArrayList<Boolean> scalar_arguments = new ArrayList<>();
             for (Expr e : callArgs) {
@@ -267,18 +254,26 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
                 scalar_arguments.add(((BasicMatrixValue) val).getShape().isScalar());
             }
 
-            String suffix = "";
-            if (Arrays.binarySearch(SPECIALIZED, expr.getName(), (s, t) -> s.compareTo(t)) >= 0) {
-                for (boolean isScalar : scalar_arguments) {
-                    suffix += isScalar ? "S" : "M";
-                }
+            if (binary_ops.containsKey(expr.getName())
+                    && scalar_arguments.size() == 2
+                    && scalar_arguments.get(0)
+                    && scalar_arguments.get(1)) {
+                return new ExprBinaryOp(
+                        binary_ops.get(expr.getName()),
+                        callArgs.getChild(0),
+                        callArgs.getChild(1)
+                        );
             }
-            new_expr = new ExprCall(
-                    new ExprVar("mc_" + expr.getName() + (suffix.equals("") ? "" : "_" + suffix)),
-                    callArgs
-                    );
+            else if (unary_ops.containsKey(expr.getName())
+                    && scalar_arguments.size() == 1
+                    && scalar_arguments.get(0)) {
+                return new ExprUnaryOp(
+                        unary_ops.get(expr.getName()),
+                        callArgs.getChild(0)
+                        );
+            }
         }
-        return new_expr;
+        return expr;
     }
 
     @Override
@@ -293,5 +288,4 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
     public ASTNode visitExprColon(ExprColon expr) {
         return expr;
     }
-
 }

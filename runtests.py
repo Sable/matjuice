@@ -25,8 +25,8 @@ def run_matlab(directory, func, arg):
     with cd(directory):
         pipe = os.popen("matlab -nodesktop -nosplash -r 'tic; %s(%s); toc; quit;'" % (func, arg))
         lines = pipe.readlines()
-        results = [float(line.strip()) for line in lines[MATLAB_HEADER_LINES:-1] if line.strip()]
-        timing = float(MATLAB_TIC_TOC_RE.search(lines[-1]).group(1))
+        results = [float(line.strip()) for line in lines[MATLAB_HEADER_LINES:-2] if line.strip()]
+        timing = float(MATLAB_TIC_TOC_RE.search(lines[-2]).group(1))
         return results, timing
 
 def run_javascript(directory, func, arg):
