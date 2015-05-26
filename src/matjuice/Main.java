@@ -23,6 +23,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.beust.jcommander.JCommander;
+
 import natlab.tame.BasicTamerTool;
 import natlab.tame.tir.TIRFunction;
 import natlab.tame.valueanalysis.ValueAnalysis;
@@ -54,11 +56,23 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        if (args.length < 3) usage();
 
-        String[] shapeDesc = { args[0] };  // E.g. "DOUBLE&1*1&REAL"
-        String   matlabFile = args[1];
-        String   javascriptFile = args[2];
+        CommandLineOptions opts = new CommandLineOptions();
+        JCommander jcommander = new JCommander(opts, args);
+        jcommander.setProgramName("matjuice");
+
+        if (opts.help) {
+            jcommander.usage();
+            System.exit(0);
+        }
+
+        if (opts.arguments.size() < 3) {
+            usage();
+        }
+
+        String[] shapeDesc = { opts.arguments.get(0) };  // E.g. "DOUBLE&1*1&REAL"
+        String   matlabFile = opts.arguments.get(1);
+        String   javascriptFile = opts.arguments.get(2);
 
         GenericFile gfile = GenericFile.create(matlabFile);
         if (!gfile.exists()) {

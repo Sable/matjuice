@@ -77,7 +77,7 @@ public class Pretty {
         return parenthesized(separateBy(text(", "), parts));
     }
 
-    
+
     private static String pad(int width) {
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < width; ++i)

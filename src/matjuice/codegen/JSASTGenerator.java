@@ -62,8 +62,7 @@ public class JSASTGenerator {
 
         // Add a return statement at the end of the function.
         Stmt returnStmt = makeStmtReturn(tirFunc);
-        if (returnStmt != null)
-            stmts.addStmt(returnStmt);
+        stmts.addStmt(returnStmt);
 
         fn.setStmtBlock(stmts);
 
@@ -86,12 +85,9 @@ public class JSASTGenerator {
         }
 
         switch (returnNames.getNumChild()) {
-        case 0:
-            return null;
-        case 1:
-            return new StmtReturn(new Opt<Expr>(returnNames.getChild(0)));
-        default:
-            return new StmtReturn(new Opt<Expr>(new ExprArray(returnNames)));
+        case 0:  return new StmtReturn(new Opt<Expr>());
+        case 1:  return new StmtReturn(new Opt<Expr>(returnNames.getChild(0)));
+        default: return new StmtReturn(new Opt<Expr>(new ExprArray(returnNames)));
         }
     }
 
@@ -200,13 +196,9 @@ public class JSASTGenerator {
     private Stmt genAssignToListStmt(TIRAbstractAssignToListStmt tirStmt) {
         StmtBlock stmts = new StmtBlock();
         stmts.setBraces(false);
-        Expr call =
-          tirStmt instanceof TIRCallStmt
+        Expr call = tirStmt instanceof TIRCallStmt
           ? genCallExpr((ast.ParameterizedExpr) tirStmt.getRHS())
-          : genArrayGetExpr(
-              (ast.ParameterizedExpr) tirStmt.getRHS(),
-              tirStmt.getTargets()
-              );
+          : genArrayGetExpr((ast.ParameterizedExpr) tirStmt.getRHS(), tirStmt.getTargets());
 
         switch (tirStmt.getNumTargets()) {
         case 0:
@@ -624,25 +616,26 @@ public class JSASTGenerator {
      * @return an enum value that says whether the loop ascends, descends or its direction is unknown.
      */
     private LoopDirection loopDir(TIRForStmt forStmt) {
-        if (forStmt.hasIncr()) {
-            String incrName = forStmt.getIncName().getID();
-            AggrValue<BasicMatrixValue> val = analysis.getCurrentOutSet().get(incrName).getSingleton();
-            BasicMatrixValue bmv = (BasicMatrixValue)val;
-
-            if (bmv.hasRangeValue()) {
-                if (bmv.getRangeValue().isRangeValuePositive())
-                    return LoopDirection.Ascending;
-                else if (bmv.getRangeValue().isRangeValueNegative())
-                    return LoopDirection.Descending;
-                else
-                    return LoopDirection.Unknown;
-            }
-
-            else {
-                return LoopDirection.Unknown;
-            }
-        }
         // If no explicit increment, then it defaults to 1.
-        return LoopDirection.Ascending;
+        if (!forStmt.hasIncr()) {
+            return LoopDirection.Ascending;
+        }
+
+        String incrName = forStmt.getIncName().getID();
+        AggrValue<BasicMatrixValue> val = analysis.getCurrentOutSet().get(incrName).getSingleton();
+        BasicMatrixValue bmv = (BasicMatrixValue)val;
+
+        if (bmv.hasRangeValue()) {
+            if (bmv.getRangeValue().isRangeValuePositive())
+                return LoopDirection.Ascending;
+            else if (bmv.getRangeValue().isRangeValueNegative())
+                return LoopDirection.Descending;
+            else
+                return LoopDirection.Unknown;
+        }
+        else {
+            return LoopDirection.Unknown;
+        }
     }
+
 }
