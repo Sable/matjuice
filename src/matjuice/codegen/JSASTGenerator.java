@@ -248,8 +248,7 @@ public class JSASTGenerator {
 
         List<Expr> args = new List<>(new ExprId(lhs), indices, new ExprId(rhs));
 
-        ExprCall setter = new ExprCall(new ExprId("mc_array_set"), args);
-        return new StmtExpr(new ExprAssign(new ExprId(lhs), setter));
+        return new StmtExpr(new ExprCall(new ExprId("mc_array_set"), args));
     }
 
 
@@ -498,6 +497,14 @@ public class JSASTGenerator {
 
 
     private Expr genArrayGetExpr(ast.ParameterizedExpr expr, TIRCommaSeparatedList targets) {
+        ExprArray indices = new ExprArray();
+        for (ast.Expr arg: expr.getArgList()) {
+            indices.addExpr(genExpr(arg));
+        }
+        List<Expr> args = new List<Expr>(new ExprId(expr.getVarName()), indices);
+        return new ExprCall(new ExprId("mc_array_get"), args);
+
+        /*
         // Traverse the indices to see if they are all scalars, or if there is at least one
         // colon-expression (i.e. slicing operation)
         boolean has_slices = false;
@@ -563,21 +570,7 @@ public class JSASTGenerator {
         }
 
         return null;
-    }
-
-    private Expr genSingleElementIndexing(ast.ParameterizedExpr expr) {
-        ExprArray indices = new ExprArray();
-        for (ast.Expr arg: expr.getArgList()) {
-            indices.addExpr(genExpr(arg));
-        }
-        List<Expr> args = new List<Expr>(new ExprId(expr.getVarName()), indices);
-        return new ExprCall(new ExprId("mc_array_get"), args);
-    }
-
-
-    private Expr convertToColonExpr(Expr e) {
-        List<Expr> args = new List<Expr>(e, e);
-        return new ExprCall(new ExprId("mc_colon"), args);
+        */
     }
 
 
@@ -588,27 +581,6 @@ public class JSASTGenerator {
     }
 
 
-    /**
-     * Utility function to determine whether an argument to an array indexing
-     * operation gets a slice of the array.  Both : (COLON) and non-scalar
-     * variables are considered colon expressions.
-     * @param expr
-     * @return
-     */
-    private boolean isColonExpr(ast.Expr expr) {
-        if (expr instanceof ast.ColonExpr)
-            return true;
-
-        if (expr instanceof ast.NameExpr) {
-            String name = ((ast.NameExpr) expr).getName().getID();
-            AggrValue<BasicMatrixValue> val = analysis.getCurrentOutSet().get(name).getSingleton();
-            if (val instanceof BasicMatrixValue) {
-                return !((BasicMatrixValue) val).getShape().isScalar();
-            }
-        }
-
-        return false;
-    }
 
     /**
      * Try to statically determine whether a for loop is ascending or descending.

@@ -17,4 +17,6 @@ public class CommandLineOptions {
     @Parameter(names={ "--rename-operators" }, arity=1, description="replace scalar functions with JavaScript operators")
     public boolean renameOperators = true;
 
+    @Parameter(names={ "--rename-array-get" }, arity=1, description="replace array_get with JavaScript indexing")
+    public boolean renameArrayGet = true;
 }

@@ -212,11 +212,15 @@ aspect PrettyPrinter {
     }
 
     public PrettyBase ExprBinaryOp.pp() {
-        return Pretty.separateBy(
-            Pretty.text(" "),
+        return Pretty.concat(
+            Pretty.text("("),
             this.getLHS().pp(),
+            Pretty.text(" "),
             Pretty.text(this.getOp()),
-            this.getRHS().pp());
+            Pretty.text(" "),
+            this.getRHS().pp(),
+            Pretty.text(")")
+            );
     }
 
     public PrettyBase ExprAssign.pp() {

@@ -36,6 +36,7 @@ import matjuice.codegen.JSASTGenerator;
 import matjuice.jsast.*;
 import matjuice.pretty.Pretty;
 import matjuice.transformers.JSAddVarDeclsVisitor;
+import matjuice.transformers.JSArrayGetVisitor;
 import matjuice.transformers.JSRenameBuiltins;
 import matjuice.transformers.JSRenameBuiltinsVisitor;
 import matjuice.transformers.JSRenameOperatorsVisitor;
@@ -107,6 +108,7 @@ public class Main {
             // Rename builtin function calls and binary operators.
             Function new_function = f;
             new_function = (Function) JSRenameOperatorsVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
+            new_function = (Function) JSArrayGetVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
             new_function = (Function) JSRenameBuiltinsVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
             program.setFunction(new_function, i);
         }
