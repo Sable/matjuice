@@ -208,5 +208,14 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
         return Collections.emptySet();
     }
 
+    @Override
+    public Set<String> visitExprTernary(ExprTernary expr) {
+        Set<String> acc = new HashSet<>();
+        acc.addAll(expr.getExpr().accept(this));
+        acc.addAll(expr.getThenExpr().accept(this));
+        acc.addAll(expr.getElseExpr().accept(this));
+        return acc;
+    }
+
 
 }

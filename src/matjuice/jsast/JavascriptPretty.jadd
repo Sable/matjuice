@@ -229,6 +229,17 @@ aspect PrettyPrinter {
                              this.getRHS().pp());
     }
 
+    public PrettyBase ExprTernary.pp() {
+        return Pretty.separateBy(
+            Pretty.text(" "),
+            this.getExpr().pp(),
+            Pretty.text("?"),
+            this.getThenExpr().pp(),
+            Pretty.text(":"),
+            this.getElseExpr().pp()
+            );
+    }
+
     public PrettyBase ExprColon.pp() {
         return Pretty.text("MC_COLON");
     }

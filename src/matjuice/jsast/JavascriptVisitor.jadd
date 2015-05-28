@@ -88,7 +88,7 @@ aspect Visitor {
     public <T> T ExprBoolean.accept(JSVisitor<T> visitor) {
         return visitor.visitExprBoolean(this);
     }
-    
+
     public <T> T ExprArray.accept(JSVisitor<T> visitor) {
     	return visitor.visitExprArray(this);
     }
@@ -115,6 +115,10 @@ aspect Visitor {
 
     public <T> T ExprPropertyGet.accept(JSVisitor<T> visitor) {
         return visitor.visitExprPropertyGet(this);
+    }
+
+    public <T> T ExprTernary.accept(JSVisitor<T> visitor) {
+        return visitor.visitExprTernary(this);
     }
 
     public <T> T ExprColon.accept(JSVisitor<T> visitor) {

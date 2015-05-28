@@ -354,4 +354,13 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
         else
             return null;
     }
+
+    @Override
+    public ASTNode visitExprTernary(ExprTernary expr) {
+        return new ExprTernary(
+                (Expr) expr.getExpr().accept(this),
+                (Expr) expr.getThenExpr().accept(this),
+                (Expr) expr.getElseExpr().accept(this)
+                );
+    }
 }

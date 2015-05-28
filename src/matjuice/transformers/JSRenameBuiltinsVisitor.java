@@ -269,4 +269,12 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
         return expr;
     }
 
+    @Override
+    public ASTNode visitExprTernary(ExprTernary expr) {
+        return new ExprTernary(
+                (Expr) expr.getExpr().accept(this),
+                (Expr) expr.getThenExpr().accept(this),
+                (Expr) expr.getElseExpr().accept(this)
+                );
+    }
 }

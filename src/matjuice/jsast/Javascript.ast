@@ -46,4 +46,5 @@ ExprBinaryOp:Expr    ::= <Op:String> LHS:Expr RHS:Expr;
 ExprId:Expr          ::= <Name:String>;
 ExprArray:Expr       ::= Expr:Expr*;
 ExprPropertyGet:Expr ::= Expr:Expr Property:Expr;
+ExprTernary:Expr     ::= Expr:Expr ThenExpr:Expr ElseExpr:Expr;
 ExprColon:Expr ;

@@ -45,5 +45,6 @@ public interface JSVisitor<T> {
     public T visitExprBinaryOp(ExprBinaryOp expr);
     public T visitExprId(ExprId expr);
     public T visitExprPropertyGet(ExprPropertyGet expr);
+    public T visitExprTernary(ExprTernary expr);
     public T visitExprColon(ExprColon expr);
 }
