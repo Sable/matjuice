@@ -24,8 +24,6 @@ import matjuice.jsast.*;
 
 
 public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
-    private int assignNestingLevel = 0;
-
     public static void apply(Function f) {
         Set<String> vars = f.accept(new JSAddVarDeclsVisitor());
         StmtBlock sb = f.getStmtBlock();
@@ -165,9 +163,13 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
 
     @Override
     public Set<String> visitExprAssign(ExprAssign expr) {
-        assignNestingLevel++;
-        Set<String> lhs = expr.getLHS().accept(this);
-        assignNestingLevel--;
+        Set<String> lhs = new HashSet<>();
+        if (expr.getLHS() instanceof ExprId) {
+            lhs.add(((ExprId) expr.getLHS()).getName());
+        }
+        else {
+            lhs = expr.getLHS().accept(this);
+        }
         Set<String> rhs = expr.getRHS().accept(this);
         lhs.addAll(rhs);
         return lhs;
@@ -188,11 +190,7 @@ public class JSAddVarDeclsVisitor implements JSVisitor<Set<String>> {
 
     @Override
     public Set<String> visitExprId(ExprId expr) {
-        Set<String> acc = new HashSet<>();
-        if (assignNestingLevel > 0) {
-            acc.add(expr.getName());
-        }
-        return acc;
+        return Collections.emptySet();
     }
 
     @Override

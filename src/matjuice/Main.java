@@ -103,19 +103,30 @@ public class Main {
         // Apply JavaScript program transformations
         for (int i = 0; i < program.getFunctionList().getNumChild(); ++i) {
             Function f = program.getFunction(i);
-            JSAddVarDeclsVisitor.apply(f);
-
             Function new_function = f;
 
             if (opts.renameOperators) {
-                new_function = (Function) JSRenameOperatorsVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
+                new_function = (Function) JSRenameOperatorsVisitor.apply(
+                        new_function,
+                        analysis,
+                        processedFunctions.get(new_function.getFunctionName().getName()));
             }
 
             if (opts.renameArrayIndexing) {
-                new_function = (Function) JSArrayIndexingVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
+                new_function = (Function) JSArrayIndexingVisitor.apply(
+                        new_function,
+                        analysis,
+                        processedFunctions.get(new_function.getFunctionName().getName()),
+                        opts.enableBoundsChecking);
             }
 
-            new_function = (Function) JSRenameBuiltinsVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
+            new_function = (Function) JSRenameBuiltinsVisitor.apply(
+                    new_function,
+                    analysis,
+                    processedFunctions.get(new_function.getFunctionName().getName()));
+
+            JSAddVarDeclsVisitor.apply(new_function);
+
             program.setFunction(new_function, i);
         }
 
@@ -166,4 +177,7 @@ final class CommandLineOptions {
 
     @Parameter(names={ "--rename-array-indexing" }, arity=1, description="replace array_get/array_set with JavaScript indexing")
     public boolean renameArrayIndexing= true;
+
+    @Parameter(names={ "--enable-bounds-checking" }, arity=1, description="generate bounds checking code")
+    public boolean enableBoundsChecking = true;
 }

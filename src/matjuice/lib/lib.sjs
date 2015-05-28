@@ -1,5 +1,9 @@
 var MC_COLON = {};
 
+function mc_error(msg) {
+    throw msg;
+}
+
 macro elemwise {
     rule { ( $out:ident <= $M:ident $op $x:expr ) } => {
         for (var i = 1, N = $M.mj_numel(); i <= N; ++i) {

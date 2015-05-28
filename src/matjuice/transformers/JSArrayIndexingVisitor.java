@@ -5,6 +5,7 @@ import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.DimValue;
+import natlab.toolkits.rewrite.TempFactory;
 import matjuice.jsast.*;
 import matjuice.pretty.Pretty;
 
@@ -12,15 +13,17 @@ import matjuice.pretty.Pretty;
 public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
     private ValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private int index;
+    private boolean boundsCheck;
 
 
-    public JSArrayIndexingVisitor(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
+    public JSArrayIndexingVisitor(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index, boolean boundsCheck) {
         this.analysis = analysis;
         this.index = index;
+        this.boundsCheck = boundsCheck;
     }
 
-    public static Function apply(Function f, ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
-        JSArrayIndexingVisitor renamer = new JSArrayIndexingVisitor(analysis, index);
+    public static Function apply(Function f, ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index, boolean boundsCheck) {
+        JSArrayIndexingVisitor renamer = new JSArrayIndexingVisitor(analysis, index, boundsCheck);
         Function new_f = (Function) f.accept(renamer);
         return new_f;
     }
@@ -258,6 +261,29 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
         return new ExprBinaryOp("-", e, new ExprInt(1));
     }
 
+    private Expr boundsChecked(Expr array, Expr e) {
+        if (!boundsCheck)
+            return e;
+
+        String temp_name = TempFactory.genFreshTempString();
+        ExprId temp = new ExprId(temp_name);
+        ExprAssign temp_assignment = new ExprAssign(temp, e);
+        Expr condition = new ExprBinaryOp(
+                "||",
+                new ExprBinaryOp("<",  temp, new ExprInt(0)),
+                new ExprBinaryOp(">=", temp, new ExprCall(
+                        new ExprPropertyGet(array, new ExprString("mj_numel")),
+                        new List<Expr>()
+                        )
+                ));
+        Expr then_expr = new ExprCall(new ExprId("mc_error"), new List<Expr>(new ExprString("index out of bounds")));
+        return new ExprBinaryOp(
+                ",",
+                temp_assignment,
+                new ExprTernary(condition, then_expr, temp)
+                );
+    }
+
     private Expr generateIndexingExpression(Expr array, List<Expr> indices) {
         String name = ((ExprId) array).getName();
         BasicMatrixValue bmv = getBasicMatrixValue(name);
@@ -273,7 +299,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
             Expr new_dim =
                     dimensions.get(i).hasIntValue()
                     ? new ExprInt(dimensions.get(i).getIntValue())
-                    : new ExprPropertyGet(new ExprId(name + "." + "mj_size()"), new ExprInt(i));
+                    : new ExprPropertyGet(new ExprCall(new ExprPropertyGet(new ExprId(name), new ExprString("mj_size")), new List<Expr>()), new ExprInt(i));
             multiplier = new ExprBinaryOp("*", multiplier, new_dim);
         }
 
@@ -283,7 +309,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
             indexing_expr = new ExprBinaryOp("+", indexing_expr, term);
         }
 
-        return indexing_expr;
+        return boundsChecked(array, indexing_expr);
     }
 
 
