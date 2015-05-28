@@ -20,10 +20,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 
 import natlab.tame.BasicTamerTool;
 import natlab.tame.tir.TIRFunction;
@@ -36,8 +39,7 @@ import matjuice.codegen.JSASTGenerator;
 import matjuice.jsast.*;
 import matjuice.pretty.Pretty;
 import matjuice.transformers.JSAddVarDeclsVisitor;
-import matjuice.transformers.JSArrayGetVisitor;
-import matjuice.transformers.JSRenameBuiltins;
+import matjuice.transformers.JSArrayIndexingVisitor;
 import matjuice.transformers.JSRenameBuiltinsVisitor;
 import matjuice.transformers.JSRenameOperatorsVisitor;
 
@@ -57,7 +59,6 @@ public class Main {
     }
 
     public static void main(String[] args) {
-
         CommandLineOptions opts = new CommandLineOptions();
         JCommander jcommander = new JCommander(opts, args);
         jcommander.setProgramName("matjuice");
@@ -102,13 +103,18 @@ public class Main {
         // Apply JavaScript program transformations
         for (int i = 0; i < program.getFunctionList().getNumChild(); ++i) {
             Function f = program.getFunction(i);
-            // Add variable declarations inside every function.
             JSAddVarDeclsVisitor.apply(f);
 
-            // Rename builtin function calls and binary operators.
             Function new_function = f;
-            new_function = (Function) JSRenameOperatorsVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
-            new_function = (Function) JSArrayGetVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
+
+            if (opts.renameOperators) {
+                new_function = (Function) JSRenameOperatorsVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
+            }
+
+            if (opts.renameArrayIndexing) {
+                new_function = (Function) JSArrayIndexingVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
+            }
+
             new_function = (Function) JSRenameBuiltinsVisitor.apply(new_function, analysis, processedFunctions.get(new_function.getFunctionName().getName()));
             program.setFunction(new_function, i);
         }
@@ -144,4 +150,20 @@ public class Main {
             catch (IOException e) {}
         }
     }
+}
+
+
+@Parameters(separators = "=")
+final class CommandLineOptions {
+    @Parameter
+    public java.util.List<String> arguments = new ArrayList<String>();
+
+    @Parameter(names={ "-h", "--help" }, help=true, description="display this help message")
+    public boolean help = false;
+
+    @Parameter(names={ "--rename-operators" }, arity=1, description="replace scalar functions with JavaScript operators")
+    public boolean renameOperators = true;
+
+    @Parameter(names={ "--rename-array-indexing" }, arity=1, description="replace array_get/array_set with JavaScript indexing")
+    public boolean renameArrayIndexing= true;
 }

@@ -9,18 +9,18 @@ import matjuice.jsast.*;
 import matjuice.pretty.Pretty;
 
 @SuppressWarnings("rawtypes")
-public class JSArrayGetVisitor implements JSVisitor<ASTNode> {
+public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
     private ValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private int index;
 
 
-    public JSArrayGetVisitor(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
+    public JSArrayIndexingVisitor(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
         this.analysis = analysis;
         this.index = index;
     }
 
     public static Function apply(Function f, ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
-        JSArrayGetVisitor renamer = new JSArrayGetVisitor(analysis, index);
+        JSArrayIndexingVisitor renamer = new JSArrayIndexingVisitor(analysis, index);
         Function new_f = (Function) f.accept(renamer);
         return new_f;
     }
