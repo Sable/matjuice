@@ -471,7 +471,7 @@ function mc_false() {
 function mc_array_get(m, indices) {
     var value = m.mj_get(indices);
     if (value === undefined)
-        throw "invalid indices";
+        throw "index out of bounds";
     else
         return value;
 }
@@ -592,6 +592,18 @@ function mc_randn() {
     var buf = new Float64Array(length);
     for (var i = 0; i < length; ++i) {
         buf[i] = Math.random();
+    }
+    return mj_create(buf, shape);
+}
+
+function mc_randi(imax) {
+    var sh_len = mc_compute_shape_length(Array.prototype.slice.call(arguments, 1));
+    var shape = sh_len[0];
+    var length = sh_len[1];
+
+    var buf = new Float64Array(length);
+    for (var i = 0; i < length; ++i) {
+        buf[i] = Math.abs(Math.floor(Math.random() * imax));
     }
     return mj_create(buf, shape);
 }
@@ -752,4 +764,12 @@ function mc_mean(m) {
         return sum / n;
     }
     throw "mc_mean: not implemented for matrices";
+}
+
+function mc_max(a, b) {
+    return Math.max(a, b);
+}
+
+function mc_min(a, b) {
+    return Math.min(a, b);
 }
