@@ -467,7 +467,15 @@ public class JSASTGenerator {
      * @return
      */
     private ExprString genStringLiteralExpr(ast.StringLiteralExpr expr) {
-        return new ExprString(expr.getValue());
+        String value = expr.getValue();
+        StringBuffer buf = new StringBuffer();
+        for (int i = 0; i < value.length(); ++i) {
+            if (value.charAt(i) == '"')
+                buf.append("\\\"");
+            else
+                buf.append(value.charAt(i));
+        }
+        return new ExprString(buf.toString());
     }
 
     private ExprId genNameExpr(ast.NameExpr expr) {

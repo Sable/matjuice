@@ -1,4 +1,5 @@
 var MC_COLON = {};
+var MC_TICTOC = 0;
 
 function mc_error(msg) {
     throw msg;
@@ -772,4 +773,14 @@ function mc_max(a, b) {
 
 function mc_min(a, b) {
     return Math.min(a, b);
+}
+
+
+function mc_tic() {
+    MC_TICTOC = performance.now();
+}
+
+function mc_toc() {
+    var elapsed = performance.now() - MC_TICTOC;
+    return elapsed / 1000000;
 }

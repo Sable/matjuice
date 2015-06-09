@@ -9,6 +9,11 @@ import natlab.toolkits.rewrite.TempFactory;
 import matjuice.jsast.*;
 import matjuice.pretty.Pretty;
 
+enum GetOrSet {
+    Get,
+    Set
+}
+
 @SuppressWarnings("rawtypes")
 public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
     private ValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
@@ -53,7 +58,12 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
 
     @Override
     public ASTNode visitStmtExpr(StmtExpr stmt) {
-        return new StmtExpr((Expr) stmt.getExpr().accept(this));
+        ASTNode new_expr = stmt.getExpr().accept(this);
+
+        if (new_expr instanceof Stmt)
+            return new_expr;
+        else
+            return new StmtExpr((Expr) new_expr);
     }
 
     @Override
@@ -216,33 +226,45 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
         Expr array = args.getChild(0);
         List<Expr> indices = ((ExprArray) args.getChild(1)).getExprList();
 
-
         if (containsSlice(indices)) {
-            return generateArraySliceGet(array, indices);
+            return generateArraySlice(array, indices, GetOrSet.Get);
         }
 
         // All the indices are scalar.
         ExprPropertyGet array_index_expr = new ExprPropertyGet();
         array_index_expr.setExpr(array);
-        array_index_expr.setProperty(generateIndexingExpression(array, indices));
+        Expr indexing_expr = generateIndexingExpression(array, indices);
+        array_index_expr.setProperty(boundsChecked(array, indexing_expr));
         return array_index_expr;
     }
 
-    private Expr replaceArraySetCall(List<Expr> args) {
+    private Stmt replaceArraySetCall(List<Expr> args) {
         Expr array = args.getChild(0);
         List<Expr> indices = ((ExprArray) args.getChild(1)).getExprList();
         Expr new_value = args.getChild(2);
 
-
         if (containsSlice(indices)) {
-            return generateArraySliceGet(array, indices);
+            return new StmtExpr(generateArraySlice(array, indices, GetOrSet.Set));
         }
 
         // All the indices are scalar.
-        ExprPropertyGet array_index_expr = new ExprPropertyGet();
-        array_index_expr.setExpr(array);
-        array_index_expr.setProperty(generateIndexingExpression(array, indices));
-        return new ExprAssign(array_index_expr, new_value);
+        Expr indexing_expr = generateIndexingExpression(array, indices);
+        StmtBlock block = new StmtBlock();
+        block.setBraces(false);
+
+        ExprId temp = new ExprId(TempFactory.genFreshTempString());
+
+        block.addStmt(new StmtExpr(new ExprAssign(temp, indexing_expr)));
+        block.addStmt(new StmtIfThenElse(
+                new ExprBinaryOp("<", temp, new ExprInt(0)),
+                new StmtBlock(true, new List<Stmt>(new StmtExpr(new ExprCall(new ExprId("mc_error"), new List<Expr>())))),
+                new StmtBlock()));
+        block.addStmt(new StmtIfThenElse(
+                new ExprBinaryOp(">=", temp, new ExprCall(new ExprPropertyGet(array, new ExprString("mj_numel")), new List<Expr>())),
+                new StmtBlock(true, new List<Stmt>(new StmtExpr(new ExprCall(new ExprId("mc_resize"), new List<Expr>(temp))))),
+                new StmtBlock()));
+        block.addStmt(new StmtExpr(new ExprAssign(new ExprPropertyGet(array, temp), new_value)));
+        return block;
     }
 
     /** If any index expression is a slice expression, convert all indices
@@ -309,12 +331,12 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
             indexing_expr = new ExprBinaryOp("+", indexing_expr, term);
         }
 
-        return boundsChecked(array, indexing_expr);
+        return indexing_expr;
     }
 
 
     /**
-     * Translate an array get operation with a mix of scalars and slices
+     * Translate an array get/set operation with a mix of scalars and slices
      * into an operation on slices only.
      *
      * E.g. a(1, 2:4, 5) ==> a(1:1, 2:4, 5:5)
@@ -322,7 +344,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
      * @param indices
      * @return
      */
-    private Expr generateArraySliceGet(Expr array, List<Expr> indices) {
+    private Expr generateArraySlice(Expr array, List<Expr> indices, GetOrSet getOrSet) {
         List<Expr> new_indices = new List<>();
         for (Expr index: indices) {
             if (isColonExpr(index))
@@ -331,7 +353,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
                 new_indices.add(convertToColonExpr(index));
         }
         return new ExprCall(
-                new ExprId("mc_array_slice"),
+                new ExprId(getOrSet == GetOrSet.Get ? "mc_array_slice_get" : "mc_array_slice_set"),
                 new List<Expr>(
                         array,
                         new ExprArray(new_indices)
