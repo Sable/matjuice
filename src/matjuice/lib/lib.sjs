@@ -782,7 +782,7 @@ function mc_tic() {
 
 function mc_toc() {
     var elapsed = performance.now() - MC_TICTOC;
-    return elapsed / 1000000;
+    return elapsed / 1000;
 }
 
 function mc_resize(array, new_index) {
