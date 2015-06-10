@@ -356,7 +356,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
                 new_indices.add(convertToColonExpr(index));
         }
         return new ExprCall(
-                new ExprId(getOrSet == GetOrSet.Get ? "mc_array_slice_get" : "mc_array_slice_set"),
+                new ExprId(getOrSet == GetOrSet.Get ? "mc_slice_get" : "mc_slice_set"),
                 new List<Expr>(
                         array,
                         new ExprArray(new_indices)

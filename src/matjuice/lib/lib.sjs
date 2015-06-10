@@ -687,58 +687,81 @@ function mc_colon() {
     return mj_create(buf, [1, len]);
 }
 
-function mc_array_slice_static_1(m, result_length, result_dims, dimensions, indices) {
-    if (indices[0] === MC_COLON) indices[0] = mc_colon(1, result_length);
-    var buf = new Float64Array(result_length);
-    var k = 0;
-    for (var i = 1; i <= indices[0].mj_numel(); ++i) {
-        var index = indices[0].mj_get([i]);
-        buf[k] = m.mj_get([index]);
-        k++;
-    }
-    return mj_create(buf, dimensions);
-}
+// function mc_array_slice_static_1(m, result_length, result_dims, dimensions, indices) {
+//     if (indices[0] === MC_COLON) indices[0] = mc_colon(1, result_length);
+//     var buf = new Float64Array(result_length);
+//     var k = 0;
+//     for (var i = 1; i <= indices[0].mj_numel(); ++i) {
+//         var index = indices[0].mj_get([i]);
+//         buf[k] = m.mj_get([index]);
+//         k++;
+//     }
+//     return mj_create(buf, dimensions);
+// }
 
-function mc_array_slice_static_2(m, result_length, result_dims, dimensions, indices) {
-    if (indices[0] === MC_COLON) indices[0] = mc_colon(1, dimensions[0]);
-    if (indices[1] === MC_COLON) indices[1] = mc_colon(1, dimensions[1]);
+// function mc_array_slice_static_2(m, result_length, result_dims, dimensions, indices) {
+//     if (indices[0] === MC_COLON) indices[0] = mc_colon(1, dimensions[0]);
+//     if (indices[1] === MC_COLON) indices[1] = mc_colon(1, dimensions[1]);
 
-    var buf = new Float64Array(result_length);
-    var k = 0;
-    for (var j = 1; j <= indices[1].mj_numel(); ++j) {
-        for (var i = 1; i <= indices[0].mj_numel(); ++i) {
-            var row = indices[0].mj_get([i]);
-            var col = indices[1].mj_get([j]);
-            buf[k] = m.mj_get([row, col]);
-            k++;
-        }
-    }
-    return mj_create(buf, dimensions);
-}
+//     var buf = new Float64Array(result_length);
+//     var k = 0;
+//     for (var j = 1; j <= indices[1].mj_numel(); ++j) {
+//         for (var i = 1; i <= indices[0].mj_numel(); ++i) {
+//             var row = indices[0].mj_get([i]);
+//             var col = indices[1].mj_get([j]);
+//             buf[k] = m.mj_get([row, col]);
+//             k++;
+//         }
+//     }
+//     return mj_create(buf, dimensions);
+// }
 
 
-function mc_array_slice_dynamic_1(m, dimensions, indices) {
-    if (dimensions[0] === null) dimensions[0] = indices[0].mj_numel();
-    if (dimensions[1] === null) dimensions[1] = indices[0].mj_numel();
+// function mc_array_slice_dynamic_1(m, dimensions, indices) {
+//     if (dimensions[0] === null) dimensions[0] = indices[0].mj_numel();
+//     if (dimensions[1] === null) dimensions[1] = indices[0].mj_numel();
 
+//     var result_length = 1;
+//     for (var i = 0; i < dimensions.length; ++i)
+//         result_length *= dimensions[i];
+
+//     return mc_array_slice_static_1(m, result_length, dimensions.length, dimensions, indices);
+// }
+
+
+// function mc_array_slice_dynamic_2(m, dimensions, indices) {
+//     if (dimensions[0] === null) dimensions[0] = indices[0].mj_numel();
+//     if (dimensions[1] === null) dimensions[1] = indices[1].mj_numel();
+
+//     var result_length = 1;
+//     for (var i = 0; i < dimensions.length; ++i)
+//         result_length *= dimensions[i];
+
+//     return mc_array_slice_static_2(m, result_length, dimensions.length, dimensions, indices);
+// }
+
+
+function mc_slice_get(a, indices) {
+    // Compute shape and length of resulting array
+    var slice_indices = mj_convert_to_slices(a, indices);
+    var result_shape = mj_compute_shape(a, slice_indices);
     var result_length = 1;
-    for (var i = 0; i < dimensions.length; ++i)
-        result_length *= dimensions[i];
+    for (var i = 0; i < result_shape.length; ++i)
+        result_length *= result_shape[i];
 
-    return mc_array_slice_static_1(m, result_length, dimensions.length, dimensions, indices);
+    var result_array = mj_create(new Float64Array(result_length), result_shape);
+    var new_indices = mj_compute_indices(slice_indices);
+
+    var first_index = new_indices[0];
+    for (var i = 1; i <= result_length; ++i) {
+        var this_index = new_indices[i-1].slice();
+        for (var j = 0; j < first_index.length; ++j)
+            this_index[j] = this_index[j] - first_index[j] + 1;
+        mc_array_set(result_array, this_index, mc_array_get(a, new_indices[i-1]));
+    }
+    return result_array;
 }
 
-
-function mc_array_slice_dynamic_2(m, dimensions, indices) {
-    if (dimensions[0] === null) dimensions[0] = indices[0].mj_numel();
-    if (dimensions[1] === null) dimensions[1] = indices[1].mj_numel();
-
-    var result_length = 1;
-    for (var i = 0; i < dimensions.length; ++i)
-        result_length *= dimensions[i];
-
-    return mc_array_slice_static_2(m, result_length, dimensions.length, dimensions, indices);
-}
 
 
 function mc_const_false() {

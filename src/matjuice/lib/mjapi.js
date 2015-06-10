@@ -126,3 +126,62 @@ function mj_compute_index(x, indices) {
     }
     return array_index;
 }
+
+
+function mj_convert_to_slices(array, indices) {
+    var slice_indices = [];
+    for (var i = 0; i < indices.length; ++i) {
+        if (indices[i] === MC_COLON) {
+            slice_indices[i] = mc_colon(1, array.mj_size()[i]);
+        }
+        else if (typeof indices[i] === "object") { // slice
+            slice_indices[i] = indices[i];
+        }
+        else {
+            slice_indices[i] = mc_colon(indices[i], indices[i]);
+        }
+    }
+    return slice_indices;
+}
+
+function mj_compute_shape(array, slice_indices) {
+    var shape = [];
+    for (var i = 0; i < slice_indices.length; ++i) {
+        shape.push(slice_indices[i].mj_numel());
+    }
+    return shape;
+}
+
+function mj_compute_indices(slices) {
+    var N = slices.length;
+    var max = 1;
+    var digits = [];
+    for (var i = 0; i < N; ++i) {
+        max *= slices[i].mj_numel();
+        digits.push(slices[i].mj_numel());
+    }
+
+    var indices = new Array(N);
+    for (var i = 0; i < N; ++i)
+        indices[i] = 0;
+
+    var all_combinations = new Array(max);
+    for (var i = 0; i < max; ++i) {
+        var curr = new Array(N);
+
+        // Create the new index
+        for (var j = 0; j < N; ++j) {
+            //curr[j] = slices[j][indices[j]];
+            curr[j] = slices[j].mj_get([indices[j] + 1]);
+        }
+        all_combinations[i] = curr;
+
+        // Update
+        for (var j = N-1; j >= 0; --j) {
+            indices[j] = (indices[j] + 1) % digits[j];
+            if (indices[j] !== 0)
+                break;
+        }
+    }
+    return all_combinations;
+}
