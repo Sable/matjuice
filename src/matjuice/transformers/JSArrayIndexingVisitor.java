@@ -261,7 +261,8 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
                 new StmtBlock()));
         block.addStmt(new StmtIfThenElse(
                 new ExprBinaryOp(">=", temp, new ExprCall(new ExprPropertyGet(array, new ExprString("mj_numel")), new List<Expr>())),
-                new StmtBlock(true, new List<Stmt>(new StmtExpr(new ExprCall(new ExprId("mc_resize"), new List<Expr>(temp))))),
+                new StmtBlock(true, new List<Stmt>(new StmtExpr(
+                        new ExprAssign(array, new ExprCall(new ExprId("mc_resize"), new List<Expr>(array, temp)))))),
                 new StmtBlock()));
         block.addStmt(new StmtExpr(new ExprAssign(new ExprPropertyGet(array, temp), new_value)));
         return block;

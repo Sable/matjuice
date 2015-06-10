@@ -784,3 +784,10 @@ function mc_toc() {
     var elapsed = performance.now() - MC_TICTOC;
     return elapsed / 1000000;
 }
+
+function mc_resize(array, new_index) {
+    // new_index contains the 0-based index to assign to.
+    var new_array = mj_create(new Float64Array(new_index + 1), array.mj_dims());
+    new_array.set(array, 0);
+    return new_array;
+}
