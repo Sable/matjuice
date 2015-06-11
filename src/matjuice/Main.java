@@ -73,9 +73,15 @@ public class Main {
             usage();
         }
 
-        String[] shapeDesc = { opts.arguments.get(0) };  // E.g. "DOUBLE&1*1&REAL"
-        String   matlabFile = opts.arguments.get(1);
-        String   javascriptFile = opts.arguments.get(2);
+        String matlabFile = opts.arguments.get(0);
+        String javascriptFile = opts.arguments.get(1);
+
+        // The last arguments are the shape information of the parameters of the entry function.
+        int number_of_shapes = opts.arguments.size() - 2;
+        String[] shapeDesc = new String[number_of_shapes]; // E.g. "DOUBLE&1*1&REAL"
+        for (int i = 2; i < opts.arguments.size(); ++i) {
+            shapeDesc[i-2] = opts.arguments.get(i);
+        }
 
         GenericFile gfile = GenericFile.create(matlabFile);
         if (!gfile.exists()) {
