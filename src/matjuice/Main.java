@@ -16,6 +16,7 @@
 
 package matjuice;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -130,6 +131,7 @@ public class Main {
             program.setFunction(new_function, i);
         }
 
+        String matjuicePath = getMatjuicePath();
 
         // Write out the JavaScript program.
         // TODO: Fix the relative path of lib.js.
@@ -144,7 +146,7 @@ public class Main {
             out = new FileWriter(javascriptFile);
 
             for (String jsDep: jsDeps) {
-                out.write(slurp(jsDep));
+                out.write(slurp(matjuicePath + File.separator + jsDep));
             }
 
             out.write(String.format("%n%n// BEGINNING OF PROGRAM%n%n"));
@@ -160,6 +162,12 @@ public class Main {
             }
             catch (IOException e) {}
         }
+    }
+
+    private static String getMatjuicePath() {
+        String path = Main.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        File f = new File(path);
+        return f.getParent().toString();
     }
 }
 

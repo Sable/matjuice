@@ -8,7 +8,7 @@ NATLAB_PATH := $(MCLAB_CORE_PATH)/languages/Natlab
 define MATJUICE_SCRIPT
 #!/bin/bash
 
-java -cp matjuice.jar:$(NATLAB_PATH)/McLabCore.jar matjuice.Main $$*
+java -cp $(CURDIR)/matjuice.jar:$(NATLAB_PATH)/McLabCore.jar matjuice.Main $$*
 endef
 
 export MATJUICE_SCRIPT
