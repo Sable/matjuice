@@ -100,31 +100,47 @@ public class JSASTGenerator {
      * @return The JS statement.
      */
     private Stmt genStmt(TIRStmt tirStmt) {
+        Stmt js_stmt = null;
+
         // Assignment statements.
-        if (tirStmt instanceof TIRDotSetStmt) return genDotSetStmt((TIRDotSetStmt) tirStmt);
-        if (tirStmt instanceof TIRArraySetStmt) return genArraySetStmt((TIRArraySetStmt) tirStmt);
-        if (tirStmt instanceof TIRAbstractAssignToVarStmt) return genAssignToVarStmt((TIRAbstractAssignToVarStmt) tirStmt);
-        if (tirStmt instanceof TIRAbstractAssignToListStmt) return genAssignToListStmt((TIRAbstractAssignToListStmt) tirStmt);
+        if (tirStmt instanceof TIRDotSetStmt)
+            js_stmt = genDotSetStmt((TIRDotSetStmt) tirStmt);
+        else if (tirStmt instanceof TIRArraySetStmt)
+            js_stmt = genArraySetStmt((TIRArraySetStmt) tirStmt);
+        else if (tirStmt instanceof TIRAbstractAssignToVarStmt)
+            js_stmt = genAssignToVarStmt((TIRAbstractAssignToVarStmt) tirStmt);
+        else if (tirStmt instanceof TIRAbstractAssignToListStmt)
+            js_stmt = genAssignToListStmt((TIRAbstractAssignToListStmt) tirStmt);
 
-        // Control flow statements.
-        // (Missing: None)
-        if (tirStmt instanceof TIRIfStmt) return genIfStmt((TIRIfStmt) tirStmt);
-        if (tirStmt instanceof TIRWhileStmt) return genWhileStmt((TIRWhileStmt) tirStmt);
-        if (tirStmt instanceof TIRForStmt) return genForStmt((TIRForStmt) tirStmt);
-        if (tirStmt instanceof TIRReturnStmt) return genReturnStmt((TIRReturnStmt) tirStmt);
-        if (tirStmt instanceof TIRBreakStmt) return genBreakStmt();
-        if (tirStmt instanceof TIRContinueStmt) return genContinueStmt();
+        // Control flow statements. (Missing: None)
+        else if (tirStmt instanceof TIRIfStmt)
+            js_stmt = genIfStmt((TIRIfStmt) tirStmt);
+        else if (tirStmt instanceof TIRWhileStmt)
+            js_stmt = genWhileStmt((TIRWhileStmt) tirStmt);
+        else if (tirStmt instanceof TIRForStmt)
+            js_stmt = genForStmt((TIRForStmt) tirStmt);
+        else if (tirStmt instanceof TIRReturnStmt)
+            js_stmt = genReturnStmt((TIRReturnStmt) tirStmt);
+        else if (tirStmt instanceof TIRBreakStmt)
+            js_stmt = genBreakStmt();
+        else if (tirStmt instanceof TIRContinueStmt)
+            js_stmt = genContinueStmt();
 
-        // Other statements.
-        // (Missing: TIRPersistentStmt)
-        if (tirStmt instanceof TIRCommentStmt) return genCommentStmt((TIRCommentStmt) tirStmt);
+        // Other statements. (Missing: TIRPersistentStmt)
+        else if (tirStmt instanceof TIRCommentStmt)
+            js_stmt = genCommentStmt((TIRCommentStmt) tirStmt);
 
-        throw new UnsupportedOperationException(
-                String.format("Statement not supported: %d. %s [%s]",
-                        ((ast.Stmt) tirStmt).getStartLine(),
-                        ((ast.Stmt) tirStmt).getPrettyPrinted(),
-                        ((ast.Stmt) tirStmt).getClass().getName())
-                );
+        else
+            throw new UnsupportedOperationException(
+                    String.format("Statement not supported: %d. %s [%s]",
+                            ((ast.Stmt) tirStmt).getStartLine(),
+                            ((ast.Stmt) tirStmt).getPrettyPrinted(),
+                            ((ast.Stmt) tirStmt).getClass().getName())
+                    );
+
+        // Link the JavaScript statement with the TIR statement for use in future analyses.
+        js_stmt.setTIRStmt(tirStmt);
+        return js_stmt;
     }
 
 
@@ -395,7 +411,7 @@ public class JSASTGenerator {
     /**
      * Convert a MATLAB return to a JavaScript break.  In MATLAB, you don't give
      * an expression to return, it exits the current function and the output
-     * parameters are returned to the called.  To emulate this behavior in JavaScript,
+     * parameters are returned to the caller.  To emulate this behavior in JavaScript,
      * we find the names of the output parameters of the enclosing function and return them
      * explicitly.
      * @param tirReturn
@@ -602,7 +618,7 @@ public class JSASTGenerator {
         }
 
         String incrName = forStmt.getIncName().getID();
-        AggrValue<BasicMatrixValue> val = analysis.getCurrentOutSet().get(incrName).getSingleton();
+        AggrValue<BasicMatrixValue> val = analysis.getOutFlowSets().get(forStmt).get(incrName).getSingleton();
         BasicMatrixValue bmv = (BasicMatrixValue)val;
 
         if (bmv.hasRangeValue()) {
