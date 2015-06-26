@@ -8,6 +8,7 @@ import natlab.tame.valueanalysis.components.shape.DimValue;
 import natlab.toolkits.rewrite.TempFactory;
 import matjuice.jsast.*;
 import matjuice.pretty.Pretty;
+import matjuice.utils.JsAstUtils;
 
 enum GetOrSet {
     Get,
@@ -16,19 +17,17 @@ enum GetOrSet {
 
 @SuppressWarnings("rawtypes")
 public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
-    private ValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
-    private int index;
+    private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private boolean boundsCheck;
 
 
-    public JSArrayIndexingVisitor(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index, boolean boundsCheck) {
-        this.analysis = analysis;
-        this.index = index;
+    public JSArrayIndexingVisitor(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis, boolean boundsCheck) {
+        this.analysis = func_analysis;
         this.boundsCheck = boundsCheck;
     }
 
-    public static Function apply(Function f, ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index, boolean boundsCheck) {
-        JSArrayIndexingVisitor renamer = new JSArrayIndexingVisitor(analysis, index, boundsCheck);
+    public static Function apply(Function f, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis, boolean boundsCheck) {
+        JSArrayIndexingVisitor renamer = new JSArrayIndexingVisitor(func_analysis, boundsCheck);
         Function new_f = (Function) f.accept(renamer);
         return new_f;
     }
@@ -311,7 +310,8 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
 
     private Expr generateIndexingExpression(Expr array, List<Expr> indices) {
         String name = ((ExprId) array).getName();
-        BasicMatrixValue bmv = getBasicMatrixValue(name);
+        Stmt enclosingStmt = JsAstUtils.getEnclosingStmt(array);
+        BasicMatrixValue bmv = JsAstUtils.getBasicMatrixValue(analysis, enclosingStmt, name);
 
         java.util.List<DimValue> dimensions = bmv.getShape().getDimensions();
         java.util.List<Expr> terms = new java.util.ArrayList<>();
@@ -386,25 +386,14 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
         if (expr instanceof ExprId) {
             String name = ((ExprId) expr).getName();
 
-            BasicMatrixValue bmv = getBasicMatrixValue(name);
+            Stmt enclosingStmt = JsAstUtils.getEnclosingStmt(expr);
+            BasicMatrixValue bmv = JsAstUtils.getBasicMatrixValue(analysis, enclosingStmt, name);
             return bmv != null && !bmv.getShape().isScalar();
         }
         return false;
     }
 
-    private BasicMatrixValue getBasicMatrixValue(String variable) {
-        AggrValue<BasicMatrixValue> val = analysis
-                .getNodeList()
-                .get(index)
-                .getAnalysis()
-                .getCurrentOutSet()
-                .get(variable)
-                .getSingleton();
-        if (val instanceof BasicMatrixValue)
-            return (BasicMatrixValue) val;
-        else
-            return null;
-    }
+
 
     @Override
     public ASTNode visitExprTernary(ExprTernary expr) {

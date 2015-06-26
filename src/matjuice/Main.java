@@ -30,7 +30,9 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 
 import natlab.tame.BasicTamerTool;
+import natlab.tame.interproceduralAnalysis.InterproceduralAnalysis;
 import natlab.tame.tir.TIRFunction;
+import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
@@ -43,6 +45,7 @@ import matjuice.transformers.JSAddVarDeclsVisitor;
 import matjuice.transformers.JSArrayIndexingVisitor;
 import matjuice.transformers.JSRenameBuiltinsVisitor;
 import matjuice.transformers.JSRenameOperatorsVisitor;
+import matjuice.utils.JsAstUtils;
 
 
 public class Main {
@@ -112,25 +115,17 @@ public class Main {
             Function f = program.getFunction(i);
             Function new_function = f;
 
+            IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = analysis.getNodeList().get(i).getAnalysis();
+
             if (opts.renameOperators) {
-                new_function = (Function) JSRenameOperatorsVisitor.apply(
-                        new_function,
-                        analysis,
-                        processedFunctions.get(new_function.getFunctionName().getName()));
+                new_function = (Function) JSRenameOperatorsVisitor.apply(new_function, func_analysis);
             }
 
             if (opts.renameArrayIndexing) {
-                new_function = (Function) JSArrayIndexingVisitor.apply(
-                        new_function,
-                        analysis,
-                        processedFunctions.get(new_function.getFunctionName().getName()),
-                        opts.enableBoundsChecking);
+                new_function = (Function) JSArrayIndexingVisitor.apply(new_function, func_analysis, opts.enableBoundsChecking);
             }
 
-            new_function = (Function) JSRenameBuiltinsVisitor.apply(
-                    new_function,
-                    analysis,
-                    processedFunctions.get(new_function.getFunctionName().getName()));
+            new_function = (Function) JSRenameBuiltinsVisitor.apply(new_function, func_analysis);
 
             JSAddVarDeclsVisitor.apply(new_function);
 

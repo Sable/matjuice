@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import natlab.tame.builtin.Builtin;
-import natlab.tame.valueanalysis.ValueAnalysis;
+import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import matjuice.jsast.*;
+import matjuice.pretty.Pretty;
+import matjuice.utils.JsAstUtils;
 
 @SuppressWarnings("rawtypes")
 public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
@@ -31,18 +33,16 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
         unary_ops.put("uminus", "-");
     }
 
-    private ValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
-    private int index;
+    private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private List<Expr> callArgs = null;
 
 
-    public JSRenameOperatorsVisitor(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
-        this.analysis = analysis;
-        this.index = index;
+    public JSRenameOperatorsVisitor(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis) {
+        this.analysis = func_analysis;
     }
 
-    public static Function apply(Function f, ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
-        JSRenameOperatorsVisitor renamer = new JSRenameOperatorsVisitor(analysis, index);
+    public static Function apply(Function f, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis) {
+        JSRenameOperatorsVisitor renamer = new JSRenameOperatorsVisitor(func_analysis);
         Function new_f = (Function) f.accept(renamer);
         return new_f;
     }
@@ -64,24 +64,28 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
 
     @Override
     public ASTNode visitStmtBlock(StmtBlock stmt) {
-        StmtBlock new_stmt = new StmtBlock();
-        new_stmt.setBraces(stmt.getBraces());
-        for (Stmt child: stmt.getStmtList())
-            new_stmt.addStmt((Stmt) child.accept(this));
-        return new_stmt;
+        StmtBlock newBlock = new StmtBlock();
+        newBlock.setBraces(stmt.getBraces());
+        for (Stmt child: stmt.getStmtList()) {
+            Stmt newChild = (Stmt) child.accept(this);
+            newBlock.addStmt(newChild);
+        }
+        return newBlock.copyTIRStmtFrom(stmt);
     }
 
 
     @Override
     public ASTNode visitStmtExpr(StmtExpr stmt) {
-        return new StmtExpr((Expr) stmt.getExpr().accept(this));
+        StmtExpr newStmt = new StmtExpr((Expr) stmt.getExpr().accept(this));
+        return newStmt.copyTIRStmtFrom(stmt);
     }
 
     @Override
     public ASTNode visitStmtReturn(StmtReturn stmt) {
         if (stmt.hasExpr()) {
             Expr expr = (Expr) stmt.getExpr().accept(this);
-            return new StmtReturn(new Opt<Expr>(expr));
+            StmtReturn newStmt = new StmtReturn(new Opt<Expr>(expr));
+            return newStmt.copyTIRStmtFrom(stmt);
         }
         return stmt;
     }
@@ -91,25 +95,28 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
         Expr new_cond = (Expr) stmt.getCond().accept(this);
         StmtBlock new_then = (StmtBlock) stmt.getThen().accept(this);
         StmtBlock new_else = (StmtBlock) stmt.getElse().accept(this);
-        return new StmtIfThenElse(new_cond, new_then, new_else);
+        StmtIfThenElse newStmt = new StmtIfThenElse(new_cond, new_then, new_else);
+        return newStmt.copyTIRStmtFrom(stmt);
     }
 
     @Override
     public ASTNode visitStmtWhile(StmtWhile stmt) {
-        return new StmtWhile(
+        StmtWhile newStmt = new StmtWhile(
                 (Expr) stmt.getCond().accept(this),
                 (StmtBlock) stmt.getBody().accept(this)
                 );
+        return newStmt.copyTIRStmtFrom(stmt);
     }
 
     @Override
     public ASTNode visitStmtFor(StmtFor stmt) {
-        return new StmtFor(
+        StmtFor newStmt = new StmtFor(
                 (Expr) stmt.getInit().accept(this),
                 (Expr) stmt.getTest().accept(this),
                 (Expr) stmt.getUpdate().accept(this),
                 (StmtBlock) stmt.getBody().accept(this)
                 );
+        return newStmt.copyTIRStmtFrom(stmt);
     }
 
     @Override
@@ -135,10 +142,11 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
     @Override
     public ASTNode visitStmtVarDecl(StmtVarDecl stmt) {
         if (stmt.hasInit()) {
-            return new StmtVarDecl(
+            StmtVarDecl newStmt = new StmtVarDecl(
                     stmt.getId(),
                     new Opt<>((Expr) stmt.getInit().accept(this))
                     );
+            return newStmt.copyTIRStmtFrom(stmt);
         }
         return stmt;
     }
@@ -221,14 +229,11 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
             ArrayList<Boolean> scalar_arguments = new ArrayList<>();
             for (Expr e : callArgs) {
                 ExprId arg = (ExprId) e;
-                AggrValue<BasicMatrixValue> val = analysis
-                        .getNodeList()
-                        .get(index)
-                        .getAnalysis()
-                        .getCurrentOutSet()
-                        .get(arg.getName())
-                        .getSingleton();
-                scalar_arguments.add(((BasicMatrixValue) val).getShape().isScalar());
+                Stmt enclosingStmt = JsAstUtils.getEnclosingStmt(e);
+                System.out.println("VFB: " + Pretty.display(enclosingStmt.pp()));
+                System.out.println("VFB: " + enclosingStmt.getTIRStmt());
+                BasicMatrixValue bmv = JsAstUtils.getBasicMatrixValue(analysis, enclosingStmt, arg.getName());
+                scalar_arguments.add(bmv.getShape().isScalar());
             }
 
             if (binary_ops.containsKey(expr.getName())

@@ -51,13 +51,18 @@ public class JSAddVarDecls {
      */
     public static Set<String> getVars(Function func) {
         Set<String> locals = getLocals(func);
+        Set<String> params = getParams(func);
+
+        locals.removeAll(params);
+        return locals;
+    }
+
+    private static Set<String> getParams(Function func) {
         Set<String> params =  new HashSet<String>();
         for (Parameter param: func.getParamList()) {
             params.add(param.getName());
         }
-
-        locals.removeAll(params);
-        return locals;
+        return params;
     }
 
     /**

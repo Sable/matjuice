@@ -26,4 +26,9 @@ aspect TameIRMapping {
     public void Stmt.setTIRStmt(TIRStmt new_tirStmt) {
         this.tirStmt = new_tirStmt;
     }
+
+    public Stmt Stmt.copyTIRStmtFrom(Stmt from) {
+        this.setTIRStmt(from.getTIRStmt());
+        return this;
+    }
 }

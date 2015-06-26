@@ -20,10 +20,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import natlab.tame.builtin.Builtin;
+import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import matjuice.jsast.*;
+import matjuice.utils.JsAstUtils;
 
 
 @SuppressWarnings("rawtypes")
@@ -42,18 +44,16 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
         Arrays.sort(SPECIALIZED, (s, t) -> s.compareTo(t));
     }
 
-    private ValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
-    private int index;
+    private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private List<Expr> callArgs = null;
 
 
-    public JSRenameBuiltinsVisitor(ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
-        this.analysis = analysis;
-        this.index = index;
+    public JSRenameBuiltinsVisitor(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis) {
+        this.analysis = func_analysis;
     }
 
-    public static Function apply(Function f, ValueAnalysis<AggrValue<BasicMatrixValue>> analysis, int index) {
-        JSRenameBuiltinsVisitor renamer = new JSRenameBuiltinsVisitor(analysis, index);
+    public static Function apply(Function f, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis) {
+        JSRenameBuiltinsVisitor renamer = new JSRenameBuiltinsVisitor(func_analysis);
         Function new_f = (Function) f.accept(renamer);
         return new_f;
     }
@@ -227,19 +227,13 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
 
         Expr new_expr = expr;
         if (Builtin.getInstance(expr.getName()) != null) {
-         // Keep in a list which arguments are scalar and which
-            // aren't.
+            // Keep in a list which arguments are scalar and which aren't.
             ArrayList<Boolean> scalar_arguments = new ArrayList<>();
             for (Expr e : callArgs) {
                 ExprId arg = (ExprId) e;
-                AggrValue<BasicMatrixValue> val = analysis
-                        .getNodeList()
-                        .get(index)
-                        .getAnalysis()
-                        .getCurrentOutSet()
-                        .get(arg.getName())
-                        .getSingleton();
-                scalar_arguments.add(((BasicMatrixValue) val).getShape().isScalar());
+                Stmt enclosingStmt = JsAstUtils.getEnclosingStmt(e);
+                BasicMatrixValue bmv = JsAstUtils.getBasicMatrixValue(analysis, enclosingStmt, arg.getName());
+                scalar_arguments.add(bmv.getShape().isScalar());
             }
 
             String suffix = "";
