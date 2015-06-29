@@ -230,8 +230,6 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
             for (Expr e : callArgs) {
                 ExprId arg = (ExprId) e;
                 Stmt enclosingStmt = JsAstUtils.getEnclosingStmt(e);
-                System.out.println("VFB: " + Pretty.display(enclosingStmt.pp()));
-                System.out.println("VFB: " + enclosingStmt.getTIRStmt());
                 BasicMatrixValue bmv = JsAstUtils.getBasicMatrixValue(analysis, enclosingStmt, arg.getName());
                 scalar_arguments.add(bmv.getShape().isScalar());
             }

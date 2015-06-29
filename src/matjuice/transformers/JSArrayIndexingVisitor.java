@@ -1,13 +1,11 @@
 package matjuice.transformers;
 
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.DimValue;
 import natlab.toolkits.rewrite.TempFactory;
 import matjuice.jsast.*;
-import matjuice.pretty.Pretty;
 import matjuice.utils.JsAstUtils;
 
 enum GetOrSet {
