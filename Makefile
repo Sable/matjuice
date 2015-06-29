@@ -29,7 +29,7 @@ jslib: src/matjuice/lib/lib.sjs
 
 matjuice: $(SRC_FILES)
 	mkdir -p $(BUILD_DIR)
-	javac -d $(BUILD_DIR) -cp $(NATLAB_PATH)/McLabCore.jar $(GEN_DIR)/matjuice/jsast/*.java $^
+	javac -g -d $(BUILD_DIR) -cp $(NATLAB_PATH)/McLabCore.jar $(GEN_DIR)/matjuice/jsast/*.java $^
 
 generate_ast: src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPretty.jadd src/matjuice/jsast/JavascriptVisitor.jadd src/matjuice/jsast/JavascriptTameIR.jadd
 	mkdir -p $(GEN_DIR)
