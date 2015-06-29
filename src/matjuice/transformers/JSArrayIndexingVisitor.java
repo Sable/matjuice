@@ -46,11 +46,14 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
 
     @Override
     public ASTNode visitStmtBlock(StmtBlock stmt) {
-        StmtBlock new_block = new StmtBlock();
-        new_block.setBraces(stmt.getBraces());
-        for (Stmt child: stmt.getStmtList())
-            new_block.addStmt((Stmt) child.accept(this));
-        return new_block.copyTIRStmtFrom(stmt);
+        StmtBlock newBlock = new StmtBlock();
+        newBlock.setBraces(stmt.getBraces());
+        for (Stmt child: stmt.getStmtList()) {
+            Stmt newChild = (Stmt) child.accept(this);
+            newChild.copyTIRStmtFrom(child);
+            newBlock.addStmt(newChild);
+        }
+        return newBlock.copyTIRStmtFrom(stmt);
     }
 
     @Override
@@ -58,11 +61,11 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
         ASTNode newExpr = stmt.getExpr().accept(this);
 
         if (newExpr instanceof Stmt) {
-            return ((Stmt) newExpr).copyTIRStmtFrom(stmt);
+            return newExpr;
         }
         else {
             StmtExpr newStmt = new StmtExpr((Expr) newExpr);
-            return newStmt.copyTIRStmtFrom(stmt);
+            return newStmt;
         }
     }
 
@@ -74,7 +77,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
         else
             newExpr = new Opt<Expr>();
         StmtReturn newStmt = new StmtReturn(newExpr);
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -84,7 +87,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
                 (StmtBlock) stmt.getThen().accept(this),
                 (StmtBlock) stmt.getElse().accept(this)
                 );
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -93,7 +96,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
                 (Expr) stmt.getCond().accept(this),
                 (StmtBlock) stmt.getBody().accept(this)
                 );
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -104,7 +107,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
                 (Expr) stmt.getUpdate().accept(this),
                 (StmtBlock) stmt.getBody().accept(this)
                 );
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -135,7 +138,7 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
                     ? new Opt<Expr>((Expr) stmt.getInit().accept(this))
                     : new Opt<Expr>()
                 );
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override

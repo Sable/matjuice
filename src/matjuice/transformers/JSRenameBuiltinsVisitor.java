@@ -75,8 +75,11 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
     @Override
     public ASTNode visitStmtBlock(StmtBlock stmt) {
         List<Stmt> new_stmts = new List<>();
-        for (Stmt child: stmt.getStmtList())
-            new_stmts.add((Stmt) child.accept(this));
+        for (Stmt child: stmt.getStmtList()) {
+            Stmt newChild = (Stmt) child.accept(this);
+            newChild.copyTIRStmtFrom(child);
+            new_stmts.add(newChild);
+        }
         StmtBlock newStmt = new StmtBlock(stmt.getBraces(), new_stmts);
         return newStmt.copyTIRStmtFrom(stmt);
     }
@@ -84,7 +87,7 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
     @Override
     public ASTNode visitStmtExpr(StmtExpr stmt) {
         StmtExpr newStmt = new StmtExpr((Expr) stmt.getExpr().accept(this));
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -97,7 +100,7 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
             newExpr = new Opt<Expr>();
         }
         StmtReturn newStmt = new StmtReturn(newExpr);
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -106,7 +109,7 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
         newStmt.setCond((Expr) stmt.getCond().accept(this));
         newStmt.setThen((StmtBlock) stmt.getThen().accept(this));
         newStmt.setElse((StmtBlock) stmt.getElse().accept(this));
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -115,7 +118,7 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
                 (Expr) stmt.getCond().accept(this),
                 (StmtBlock) stmt.getBody().accept(this)
                 );
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -126,7 +129,7 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
                 (Expr) stmt.getUpdate().accept(this),
                 (StmtBlock) stmt.getBody().accept(this)
                 );
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -156,7 +159,7 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
         if (stmt.hasInit()) {
             newStmt.setInit((Expr) stmt.getInit().accept(this));
         }
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override

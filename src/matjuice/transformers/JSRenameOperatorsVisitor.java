@@ -68,6 +68,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
         newBlock.setBraces(stmt.getBraces());
         for (Stmt child: stmt.getStmtList()) {
             Stmt newChild = (Stmt) child.accept(this);
+            newChild.copyTIRStmtFrom(child);
             newBlock.addStmt(newChild);
         }
         return newBlock.copyTIRStmtFrom(stmt);
@@ -77,7 +78,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
     @Override
     public ASTNode visitStmtExpr(StmtExpr stmt) {
         StmtExpr newStmt = new StmtExpr((Expr) stmt.getExpr().accept(this));
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -85,7 +86,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
         if (stmt.hasExpr()) {
             Expr expr = (Expr) stmt.getExpr().accept(this);
             StmtReturn newStmt = new StmtReturn(new Opt<Expr>(expr));
-            return newStmt.copyTIRStmtFrom(stmt);
+            return newStmt;
         }
         return stmt;
     }
@@ -96,7 +97,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
         StmtBlock new_then = (StmtBlock) stmt.getThen().accept(this);
         StmtBlock new_else = (StmtBlock) stmt.getElse().accept(this);
         StmtIfThenElse newStmt = new StmtIfThenElse(new_cond, new_then, new_else);
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -105,7 +106,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
                 (Expr) stmt.getCond().accept(this),
                 (StmtBlock) stmt.getBody().accept(this)
                 );
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -116,7 +117,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
                 (Expr) stmt.getUpdate().accept(this),
                 (StmtBlock) stmt.getBody().accept(this)
                 );
-        return newStmt.copyTIRStmtFrom(stmt);
+        return newStmt;
     }
 
     @Override
@@ -146,7 +147,7 @@ public class JSRenameOperatorsVisitor implements JSVisitor<ASTNode> {
                     stmt.getId(),
                     new Opt<>((Expr) stmt.getInit().accept(this))
                     );
-            return newStmt.copyTIRStmtFrom(stmt);
+            return newStmt;
         }
         return stmt;
     }
