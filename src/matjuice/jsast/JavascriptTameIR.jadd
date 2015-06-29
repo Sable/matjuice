@@ -27,8 +27,14 @@ aspect TameIRMapping {
         this.tirStmt = new_tirStmt;
     }
 
-    public Stmt Stmt.copyTIRStmtFrom(Stmt from) {
-        this.setTIRStmt(from.getTIRStmt());
+    public Stmt Stmt.copyTIRStmtFrom(ASTNode from) {
+        while (from != null) {
+            if (from instanceof Stmt && ((Stmt) from).getTIRStmt() != null) {
+                this.setTIRStmt(((Stmt) from).getTIRStmt());
+                return this;
+            }
+            from = from.getParent();
+        }
         return this;
     }
 }

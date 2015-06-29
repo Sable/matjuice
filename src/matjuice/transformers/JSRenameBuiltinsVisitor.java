@@ -21,7 +21,6 @@ import java.util.Arrays;
 
 import natlab.tame.builtin.Builtin;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import matjuice.jsast.*;

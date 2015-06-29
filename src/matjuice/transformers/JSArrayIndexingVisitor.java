@@ -239,8 +239,8 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
 
         // All the indices are scalar.
         ExprPropertyGet array_index_expr = new ExprPropertyGet();
-        array_index_expr.setExpr(array);
         Expr indexing_expr = generateIndexingExpression(array, indices);
+        array_index_expr.setExpr(array);
         array_index_expr.setProperty(boundsChecked(array, indexing_expr));
         return array_index_expr;
     }
@@ -323,23 +323,22 @@ public class JSArrayIndexingVisitor implements JSVisitor<ASTNode> {
 
         java.util.List<DimValue> dimensions = bmv.getShape().getDimensions();
         java.util.List<Expr> terms = new java.util.ArrayList<>();
-        Expr multiplier = new ExprInt(1);
+        Expr multiplier = null;
 
         for (int i = 0; i < dimensions.size(); ++i) {
             Expr index = indexing(indices.getChild(i) == null ? new ExprInt(1) : indices.getChild(i));
-            Expr indexing_term = new ExprBinaryOp("*", multiplier, index);
+            Expr indexing_term = multiplier == null ? index : new ExprBinaryOp("*", multiplier, index);
             terms.add(indexing_term);
             Expr new_dim =
                     dimensions.get(i).hasIntValue()
                     ? new ExprInt(dimensions.get(i).getIntValue())
                     : new ExprPropertyGet(new ExprCall(new ExprPropertyGet(new ExprId(name), new ExprString("mj_size")), new List<Expr>()), new ExprInt(i));
-            multiplier = new ExprBinaryOp("*", multiplier, new_dim);
+            multiplier = multiplier == null ? new_dim : new ExprBinaryOp("*", multiplier, new_dim);
         }
 
-
-        Expr indexing_expr = new ExprInt(0);
-        for (Expr term: terms) {
-            indexing_expr = new ExprBinaryOp("+", indexing_expr, term);
+        Expr indexing_expr = terms.get(0);
+        for (int i = 1; i < terms.size(); ++i) {
+            indexing_expr = new ExprBinaryOp("+", indexing_expr, terms.get(i));
         }
 
         return indexing_expr;
