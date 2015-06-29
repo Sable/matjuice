@@ -17,8 +17,10 @@ SRC_FILES := $(shell find . -type f -name '*.java')
 
 all: matjuice.jar matjuice.sh jslib
 
-matjuice.jar: generate_ast matjuice
+matjuice.jar: generate_ast matjuice jslib
 	jar cf $(MATJUICE_JAR) -C bin matjuice
+	jar uf $(MATJUICE_JAR) -C gen lib.js
+	jar uf $(MATJUICE_JAR) -C src/matjuice/lib/ mjapi.js
 
 matjuice.sh: matjuice.jar
 	@echo "$$MATJUICE_SCRIPT" > $(MATJUICE_SH)

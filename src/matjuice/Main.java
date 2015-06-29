@@ -16,21 +16,23 @@
 
 package matjuice;
 
-import java.io.File;
+import java.io.BufferedReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
-
+import matjuice.codegen.JSASTGenerator;
+import matjuice.jsast.Function;
+import matjuice.jsast.Program;
+import matjuice.pretty.Pretty;
+import matjuice.transformers.JSAddVarDeclsVisitor;
+import matjuice.transformers.JSArrayIndexingVisitor;
+import matjuice.transformers.JSRenameBuiltinsVisitor;
+import matjuice.transformers.JSRenameOperatorsVisitor;
 import natlab.tame.BasicTamerTool;
-import natlab.tame.interproceduralAnalysis.InterproceduralAnalysis;
 import natlab.tame.tir.TIRFunction;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
@@ -38,14 +40,10 @@ import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.toolkits.filehandling.GenericFile;
 import natlab.toolkits.path.FileEnvironment;
-import matjuice.codegen.JSASTGenerator;
-import matjuice.jsast.*;
-import matjuice.pretty.Pretty;
-import matjuice.transformers.JSAddVarDeclsVisitor;
-import matjuice.transformers.JSArrayIndexingVisitor;
-import matjuice.transformers.JSRenameBuiltinsVisitor;
-import matjuice.transformers.JSRenameOperatorsVisitor;
-import matjuice.utils.JsAstUtils;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 
 
 public class Main {
@@ -54,11 +52,18 @@ public class Main {
         System.exit(1);
     }
 
-    private static String slurp(String filename) {
-        try {
-            return new String(Files.readAllBytes(Paths.get(filename)));
-        } catch (IOException e) {
-            return "";
+    private static String slurp(BufferedReader in) {
+        StringBuffer sb = new StringBuffer();
+        while (true) {
+            String line;
+            try {
+                line = in.readLine();
+            } catch (IOException e) {
+                return "";
+            }
+            if (line == null)
+                return sb.toString();
+            sb.append(line + "\n");
         }
     }
 
@@ -132,22 +137,21 @@ public class Main {
             program.setFunction(new_function, i);
         }
 
-        String matjuicePath = getMatjuicePath();
-
         // Write out the JavaScript program.
-        // TODO: Fix the relative path of lib.js.
         // TODO: Better error messages.
         FileWriter out = null;
         String[] jsDeps = {
-            "src/matjuice/lib/mjapi.js",
-            "gen/lib.js",
+            "mjapi.js",
+            "lib.js",
         };
 
         try {
             out = new FileWriter(javascriptFile);
 
             for (String jsDep: jsDeps) {
-                out.write(slurp(matjuicePath + File.separator + jsDep));
+                //InputStream in = Main.class.getResourceAsStream("/" + jsDep);
+                BufferedReader in = new BufferedReader(new InputStreamReader(Main.class.getResourceAsStream("/" + jsDep)));
+                out.write(slurp(in));
             }
 
             out.write(String.format("%n%n// BEGINNING OF PROGRAM%n%n"));
@@ -163,12 +167,6 @@ public class Main {
             }
             catch (IOException e) {}
         }
-    }
-
-    private static String getMatjuicePath() {
-        String path = Main.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        File f = new File(path);
-        return f.getParent().toString();
     }
 }
 
