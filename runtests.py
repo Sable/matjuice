@@ -43,6 +43,9 @@ def run_javascript(directory, func, arg):
 
 
 def main():
+    if len(sys.argv) != 4:
+        print "Usage: %s <benchmark dir> <driver function> <arg>" % sys.argv[0]
+        sys.exit(1)
     matlab_results, matlab_time = run_matlab(sys.argv[1], sys.argv[2], sys.argv[3])
 
     t1 = time.time()

@@ -19,6 +19,7 @@ package matjuice;
 import java.io.BufferedReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.Map;
 import matjuice.codegen.JSASTGenerator;
 import matjuice.jsast.Function;
 import matjuice.jsast.Program;
+import matjuice.jsast.Stmt;
 import matjuice.pretty.Pretty;
 import matjuice.transformers.JSAddVarDeclsVisitor;
 import matjuice.transformers.JSArrayIndexingVisitor;
@@ -34,6 +36,7 @@ import matjuice.transformers.JSRenameBuiltinsVisitor;
 import matjuice.transformers.JSRenameOperatorsVisitor;
 import natlab.tame.BasicTamerTool;
 import natlab.tame.tir.TIRFunction;
+import natlab.tame.tir.TIRStmt;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
@@ -103,24 +106,26 @@ public class Main {
         Program program = new Program();
 
         // Convert the Tamer instructions to JavaScript.
-        Map<String, Integer> processedFunctions = new HashMap<>();
+        Map<String, Function> processedFunctions = new HashMap<>();
+        Map<String, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>>> functionAnalyses = new HashMap<>();
         int numFunctions = analysis.getNodeList().size();
         for (int i = 0; i < numFunctions; ++i) {
-            TIRFunction matlabFunction = analysis.getNodeList().get(i).getAnalysis().getTree();
+            IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = analysis.getNodeList().get(i).getAnalysis();
+            TIRFunction matlabFunction = func_analysis.getTree();
             String func_name = matlabFunction.getName().getID();
             if (!processedFunctions.containsKey(func_name)) {
-                JSASTGenerator generator = new JSASTGenerator(analysis.getNodeList().get(i).getAnalysis());
-                program.addFunction(generator.genFunction(matlabFunction));
-                processedFunctions.put(func_name, i);
+                JSASTGenerator generator = new JSASTGenerator(func_analysis);
+                Function jsFunction = generator.genFunction(matlabFunction);
+                processedFunctions.put(func_name, jsFunction);
+                functionAnalyses.put(func_name, func_analysis);
             }
         }
 
         // Apply JavaScript program transformations
-        for (int i = 0; i < program.getFunctionList().getNumChild(); ++i) {
-            Function f = program.getFunction(i);
+        for (Map.Entry<String, Function> entry: processedFunctions.entrySet()) {
+            Function f = entry.getValue();
             Function new_function = f;
-
-            IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = analysis.getNodeList().get(i).getAnalysis();
+            IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = functionAnalyses.get(entry.getKey());
 
             if (opts.renameOperators) {
                 new_function = (Function) JSRenameOperatorsVisitor.apply(new_function, func_analysis);
@@ -134,7 +139,7 @@ public class Main {
 
             JSAddVarDeclsVisitor.apply(new_function);
 
-            program.setFunction(new_function, i);
+            program.addFunction(new_function);
         }
 
         // Write out the JavaScript program.
@@ -149,9 +154,11 @@ public class Main {
             out = new FileWriter(javascriptFile);
 
             for (String jsDep: jsDeps) {
-                //InputStream in = Main.class.getResourceAsStream("/" + jsDep);
-                BufferedReader in = new BufferedReader(new InputStreamReader(Main.class.getResourceAsStream("/" + jsDep)));
-                out.write(slurp(in));
+                InputStream stream = Main.class.getResourceAsStream("/" + jsDep);
+                if (stream != null) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(stream));
+                    out.write(slurp(in));
+                }
             }
 
             out.write(String.format("%n%n// BEGINNING OF PROGRAM%n%n"));
