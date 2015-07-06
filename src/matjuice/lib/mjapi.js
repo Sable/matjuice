@@ -129,7 +129,7 @@ function mj_compute_index(x, indices) {
 
 
 function mj_convert_to_slices(array, indices) {
-    var slice_indices = [];
+    var slice_indices = new Array(indices.length);
     for (var i = 0; i < indices.length; ++i) {
         if (indices[i] === MC_COLON) {
             slice_indices[i] = mc_colon(1, array.mj_size()[i]);
@@ -149,6 +149,9 @@ function mj_compute_shape(array, slice_indices) {
     for (var i = 0; i < slice_indices.length; ++i) {
         shape.push(slice_indices[i].mj_numel());
     }
+    // HACK(vfoley): make sure always at least two dimensions.
+    if (shape.length === 1)
+        shape.push(1);
     return shape;
 }
 
