@@ -121,24 +121,31 @@ public class Main {
         // Apply JavaScript program transformations
         for (Map.Entry<String, Function> entry: processedFunctions.entrySet()) {
             Function f = entry.getValue();
-            Function new_function = f;
+
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = functionAnalyses.get(entry.getKey());
 
-            new_function = JSCopyArrayParams.apply(new_function, func_analysis);
+            // First transformer: copy all array parameters that are written to in the function.
+            f = JSCopyArrayParams.apply(f, func_analysis);
 
+            // Second transformer: replace functions with operators (e.g. add(x, 1) --> x+1)
             if (opts.renameOperators) {
-                new_function = (Function) JSRenameOperatorsVisitor.apply(new_function, func_analysis);
+                f = (Function) JSRenameOperatorsVisitor.apply(f, func_analysis);
             }
 
+            // Third transformer: replace functions with array indexing
+            // (e.g. mc_array_get(a, [1,2]) --> a[(1-1) + a.mj_size()[0]*(2-1)])
             if (opts.renameArrayIndexing) {
-                new_function = (Function) JSArrayIndexingVisitor.apply(new_function, func_analysis, opts.enableBoundsChecking);
+                f = (Function) JSArrayIndexingVisitor.apply(f, func_analysis, opts.enableBoundsChecking);
             }
 
-            new_function = (Function) JSRenameBuiltinsVisitor.apply(new_function, func_analysis);
+            // Fourth transformer: Replace builtin functions with specialized versions
+            // (e.g. mc_sqrt(9) --> mc_sqrt_S(9))
+            f = (Function) JSRenameBuiltinsVisitor.apply(f, func_analysis);
 
-            JSAddVarDeclsVisitor.apply(new_function);
+            // Fifth transformer: add var declarations for every local and temp variable.
+            JSAddVarDeclsVisitor.apply(f);
 
-            program.addFunction(new_function);
+            program.addFunction(f);
         }
 
         // Write out the JavaScript program.
