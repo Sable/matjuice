@@ -6,6 +6,7 @@ import itertools
 import pprint
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import time
@@ -29,6 +30,14 @@ def run_matlab(directory, func, arg):
         timing = float(MATLAB_TIC_TOC_RE.search(lines[-2]).group(1))
         return results, timing
 
+
+def compile_javascript(directory, func):
+    input_file = os.path.join(directory, func + ".m")
+    output_file = os.path.join(directory, func + ".js")
+    p = subprocess.Popen(["./matjuice.sh", input_file, output_file, "DOUBLE&1*1&REAL"],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p.communicate()
+
 def run_javascript(directory, func, arg):
     with cd(directory):
         with tempfile.NamedTemporaryFile() as temp:
@@ -48,6 +57,7 @@ def main():
         sys.exit(1)
     matlab_results, matlab_time = run_matlab(sys.argv[1], sys.argv[2], sys.argv[3])
 
+    compile_javascript(sys.argv[1], sys.argv[2])
     t1 = time.time()
     javascript_results = run_javascript(sys.argv[1], sys.argv[2], sys.argv[3])
     t2 = time.time()

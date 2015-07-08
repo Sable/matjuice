@@ -64,6 +64,7 @@ public class JSASTGenerator {
         stmts.addStmt(returnStmt);
 
         fn.setStmtBlock(stmts);
+        fn.setTIRFunction(tirFunc);
 
         return fn;
 

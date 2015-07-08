@@ -33,7 +33,7 @@ matjuice: $(SRC_FILES)
 	mkdir -p $(BUILD_DIR)
 	javac -g -d $(BUILD_DIR) -cp $(NATLAB_PATH)/McLabCore.jar $(GEN_DIR)/matjuice/jsast/*.java $^
 
-generate_ast: src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPretty.jadd src/matjuice/jsast/JavascriptVisitor.jadd src/matjuice/jsast/JavascriptTameIR.jadd
+generate_ast: src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPretty.jadd src/matjuice/jsast/JavascriptVisitor.jadd src/matjuice/jsast/JavascriptTameIR.jadd src/matjuice/jsast/JavascriptTameFunction.jadd
 	mkdir -p $(GEN_DIR)
 	java -jar $(MCLAB_CORE_PATH)/lib/jastadd2-2.1.9/jastadd2.jar --o $(GEN_DIR) --package=matjuice.jsast $^
 

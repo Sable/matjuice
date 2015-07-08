@@ -30,10 +30,7 @@ import matjuice.jsast.Function;
 import matjuice.jsast.Program;
 import matjuice.jsast.Stmt;
 import matjuice.pretty.Pretty;
-import matjuice.transformers.JSAddVarDeclsVisitor;
-import matjuice.transformers.JSArrayIndexingVisitor;
-import matjuice.transformers.JSRenameBuiltinsVisitor;
-import matjuice.transformers.JSRenameOperatorsVisitor;
+import matjuice.transformers.*;
 import natlab.tame.BasicTamerTool;
 import natlab.tame.tir.TIRFunction;
 import natlab.tame.tir.TIRStmt;
@@ -126,6 +123,8 @@ public class Main {
             Function f = entry.getValue();
             Function new_function = f;
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = functionAnalyses.get(entry.getKey());
+
+            new_function = JSCopyArrayParams.apply(new_function, func_analysis);
 
             if (opts.renameOperators) {
                 new_function = (Function) JSRenameOperatorsVisitor.apply(new_function, func_analysis);
