@@ -155,7 +155,6 @@ function mc_mod_MM(m1, m2) {
     return out;
 }
 
-
 function mc_mtimes_SS(x, y) {
     return x*y;
 }
@@ -410,15 +409,53 @@ function mc_length_M(m) {
     return max;
 }
 
+function mc_floor_S(x) {
+    return Math.floor(x);
+}
+
+function mc_floor_M(m) {
+    var out = m.mj_clone();
+    elemwise(out <= Math.floor m);
+    return out;
+}
+
+function mc_ceil_S(x) {
+    return Math.ceil(x);
+}
+
+function mc_ceil_M(m) {
+    var out = m.mj_clone();
+    elemwise(out <= Math.ceil m);
+    return out;
+}
 
 function mc_sin_S(x) {
     return Math.sin(x);
 }
 
-
 function mc_sin_M(m) {
     var out = m.mj_clone();
     elemwise(out <= Math.sin m);
+    return out;
+}
+
+function mc_cos_S(x) {
+    return Math.cos(x);
+}
+
+function mc_cos_M(m) {
+    var out = m.mj_clone();
+    elemwise(out <= Math.cos m);
+    return out;
+}
+
+function mc_tan_S(x) {
+    return Math.tan(x);
+}
+
+function mc_tan_M(m) {
+    var out = m.mj_clone();
+    elemwise(out <= Math.tan m);
     return out;
 }
 
@@ -762,6 +799,16 @@ function mc_slice_get(a, indices) {
     return result_array;
 }
 
+function mc_transpose(matrix) {
+    var new_matrix = mc_zeros(matrix.mj_size()[1], matrix.mj_size()[0]);
+    for (var i = 1; i <= matrix.mj_size()[0]; ++i) {
+        for (var j = 1; j <= matrix.mj_size()[1]; ++j) {
+            mc_array_set(new_matrix, [j, i],
+                         mc_array_get(matrix, [i, j]));
+        }
+    }
+    return new_matrix;
+}
 
 
 function mc_const_false() {

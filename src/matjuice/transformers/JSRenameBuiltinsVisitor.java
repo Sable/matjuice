@@ -33,9 +33,12 @@ public class JSRenameBuiltinsVisitor implements JSVisitor<ASTNode> {
      * Array of builtins that we should add a type suffix to. Mostly variadic
      * functions.
      */
-    private static String[] SPECIALIZED = { "plus", "minus", "mtimes", "rem",
-            "mod", "mrdivide", "lt", "le", "gt", "ge", "eq", "ne", "length",
-            "sin", "uminus", "exp", "rdivide", "round", "sqrt", "mpower", };
+    private static String[] SPECIALIZED = {
+        "plus", "minus", "mtimes", "rem", "mod", "mrdivide",
+        "lt", "le", "gt", "ge", "eq", "ne", "length", "sin",
+        "cos", "tan", "uminus", "exp", "rdivide", "round",
+        "sqrt", "mpower", "floor", "ceil",
+    };
 
     static {
         // The specialized functions are ordered so that we can run a binary
