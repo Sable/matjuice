@@ -33,6 +33,9 @@ public class JSASTGenerator {
 
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
 
+    // To allow generator for loops and if statements to add a map link from their statement blocks (TIRStatementList)
+    private Function currentFunction;
+
     public JSASTGenerator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
         this.analysis = analysis;
     }
@@ -45,6 +48,7 @@ public class JSASTGenerator {
      */
     public Function genFunction(TIRFunction tirFunc) {
         Function fn = new Function();
+        currentFunction = fn;
 
         // Add input parameters.
         fn.setFunctionName(new FunctionName(tirFunc.getName().getID()));
@@ -52,12 +56,17 @@ public class JSASTGenerator {
             fn.addParam(new Parameter(param.getID()));
 
         // Add body statements.
+        /*
         StmtBlock stmts = new StmtBlock();
+
         stmts.setBraces(true);
         for (ast.Stmt astStmt: tirFunc.getStmts()) {
             TIRStmt tirStmt = (TIRStmt) astStmt;
             stmts.addStmt(genStmt(tirStmt));
         }
+        */
+
+        StmtBlock stmts = genStmtList(tirFunc.getStmtList());
 
         // Add a return statement at the end of the function.
         Stmt returnStmt = makeStmtReturn(tirFunc);
@@ -96,7 +105,7 @@ public class JSASTGenerator {
      * we could use Java's dynamic dispatch mechanism, but it would
      * require us to modify every Tamer/McSAF class, which we don't
      * want to do.
-     * @param stmt The IR statement to convert.
+     * @param tirStmt The IR statement to convert.
      * @return The JS statement.
      */
     private Stmt genStmt(TIRStmt tirStmt) {
@@ -158,6 +167,7 @@ public class JSASTGenerator {
             TIRStmt currStmt = (TIRStmt) tirStmts.getChild(i);
             stmts.addStmt(genStmt(currStmt));
         }
+        this.currentFunction.setFromTIRBlock(tirStmts, stmts);
         return stmts;
     }
 

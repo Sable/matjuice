@@ -15,9 +15,13 @@
  */
 
 import natlab.tame.tir.TIRStmt;
+import natlab.tame.tir.TIRStatementList;
+import java.util.Map;
+import java.util.HashMap;
 
 aspect TameIRMapping {
     private TIRStmt Stmt.tirStmt = null;
+    private Map<TIRStatementList, StmtBlock> Function.tirBlocks = new HashMap<TIRStatementList, StmtBlock>();
 
     public TIRStmt Stmt.getTIRStmt() {
         return this.tirStmt;
@@ -36,5 +40,13 @@ aspect TameIRMapping {
             from = from.getParent();
         }
         return this;
+    }
+
+    public void Function.setFromTIRBlock(TIRStatementList block, StmtBlock stmt) {
+        this.tirBlocks.put(block, stmt);
+    }
+
+    public StmtBlock Function.getFromTIRBlock(TIRStatementList block) {
+        return this.tirBlocks.get(block);
     }
 }
