@@ -33,6 +33,10 @@ import java.util.Set;
 
 /**
  * Created by vfoley1 on 07/07/15.
+ *
+ * This class will make copies of the formal parameters of function that
+ * are possibly written to in the body of the function.  We try to put the
+ * copies as "deep" as possible (i.e. nearest to the actual writes).
  */
 public class JSCopyArrayParams {
     /**
@@ -60,6 +64,11 @@ public class JSCopyArrayParams {
         return f;
     }
 
+    /**
+     * Create a copy statement in the JS AST
+     * @param varname variable name to copy
+     * @return foo = foo["mj_clone"]()
+     */
     private static StmtExpr copyStmt(String varname) {
         return new StmtExpr(
                 new ExprAssign(
@@ -172,62 +181,4 @@ public class JSCopyArrayParams {
                 writeStatements.add(stmt);
         }
     }
-
-//    public static Function apply(Function f, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
-//        Function new_f = f.copy();
-//        for (Parameter p: new_f.getParamList()) {
-//            BasicMatrixValue bmv = (BasicMatrixValue) analysis.getCurrentInSet().get(p.getName()).getSingleton();
-//            if (!bmv.getShape().isScalar()) {
-//                java.util.List<TIRStmt> assignmentPoints = PossiblyAssigned.apply(f.getTIRFunction(), p.getName());
-//                if (!assignmentPoints.isEmpty()) {
-//                    addCopyStatement(new_f, p);
-//                }
-//            }
-//        }
-//        return new_f;
-//    }
-//
-//    private static void addCopyStatement(Function f, Parameter p) {
-//        StmtBlock block = f.getStmtBlock();
-//        List<Stmt> stmts = block.getStmts();
-//        Stmt copyStmt = new StmtExpr(new ExprAssign(
-//                new ExprId(p.getName()),
-//                new ExprCall(new ExprPropertyGet(new ExprId(p.getName()), new ExprString("mj_clone")), new List<Expr>())
-//        ));
-//        stmts.insertChild(copyStmt, 0);
-//    }
-//
-//    private static class PossiblyAssigned extends TIRAbstractNodeCaseHandler {
-//        private java.util.List<TIRStmt> assignments = new ArrayList<>();
-//        private String varname;
-//
-//        public static java.util.List<TIRStmt> apply(TIRFunction tirFunc, String varname) {
-//            PossiblyAssigned analyzer = new PossiblyAssigned(varname);
-//            tirFunc.getStmtList().tirAnalyze(analyzer);
-//            return analyzer.assignments;
-//        }
-//
-//        public PossiblyAssigned(String varname) {
-//            this.varname = varname;
-//        }
-//
-//        @Override
-//        public void caseASTNode(ASTNode astNode) {
-//            for(int i = 0; i < astNode.getNumChild(); i++) {
-//                ASTNode child = astNode.getChild(i);
-//                if (child instanceof TIRNode) {
-//                    ((TIRNode) child).tirAnalyze(this);
-//                }
-//                else {
-//                    child.analyze(this);
-//                }
-//            }
-//        }
-//
-//        @Override
-//        public void caseTIRArraySetStmt(TIRArraySetStmt stmt) {
-//            if (stmt.getArrayName().getVarName().equals(varname))
-//                assignments.add(stmt);
-//        }
-//    }
 }
