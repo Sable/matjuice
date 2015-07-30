@@ -46,7 +46,7 @@ public class JSCopyArrayParams {
      * @param analysis The analysis containing the shape information of the formal parameters
      * @return A new function
      */
-    public static Function apply(Function f, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
+    public static Function apply(Function f, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis, Set<String> outCopiedVars) {
         for (Parameter p: f.getParamList()) {
             Set<TIRArraySetStmt> arrayWrites = findWriteStatements(f.getTIRFunction(), p.getName());
 
@@ -59,6 +59,7 @@ public class JSCopyArrayParams {
                 StmtBlock jsBlock = f.getFromTIRBlock(commonBlock);
                 List<Stmt> stmts = jsBlock.getStmtList();
                 stmts.insertChild(JsAstUtils.copyStmt(p.getName()), 0);
+                outCopiedVars.add(p.getName());
                 jsBlock.setStmtList(stmts);
             }
         }

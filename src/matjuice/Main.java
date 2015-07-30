@@ -21,9 +21,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import matjuice.codegen.JSASTGenerator;
 import matjuice.jsast.Function;
@@ -126,7 +124,10 @@ public class Main {
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = functionAnalyses.get(entry.getKey());
 
             // First transformer: copy all array parameters that are written to in the function.
-            f = JSCopyArrayParams.apply(f, func_analysis);
+            // The analysis returns extra information through an out parameter: the list of
+            // formal parameters that have been copied.
+            Set<String> copiedParameters = new HashSet<String>();
+            f = JSCopyArrayParams.apply(f, func_analysis, copiedParameters);
 
             // Second transformer: replace functions with operators (e.g. add(x, 1) --> x+1)
             if (opts.renameOperators) {
