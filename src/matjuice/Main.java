@@ -124,25 +124,25 @@ public class Main {
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = functionAnalyses.get(entry.getKey());
 
             // First transformer: copy all array parameters that are written to in the function.
-            // The analysis returns extra information through an out parameter: the list of
+            // The analysis returns extra information through an out parameter: the set of
             // formal parameters that have been copied.
             Set<String> copiedParameters = new HashSet<String>();
             f = JSCopyArrayParams.apply(f, func_analysis, copiedParameters);
 
             // Second transformer: replace functions with operators (e.g. add(x, 1) --> x+1)
             if (opts.renameOperators) {
-                f = (Function) JSRenameOperatorsVisitor.apply(f, func_analysis);
+                f = JSRenameOperatorsVisitor.apply(f, func_analysis);
             }
 
             // Third transformer: replace functions with array indexing
             // (e.g. mc_array_get(a, [1,2]) --> a[(1-1) + a.mj_size()[0]*(2-1)])
             if (opts.renameArrayIndexing) {
-                f = (Function) JSArrayIndexingVisitor.apply(f, func_analysis, opts.enableBoundsChecking);
+                f = JSArrayIndexingVisitor.apply(f, func_analysis, opts.enableBoundsChecking);
             }
 
             // Fourth transformer: Replace builtin functions with specialized versions
             // (e.g. mc_sqrt(9) --> mc_sqrt_S(9))
-            f = (Function) JSRenameBuiltinsVisitor.apply(f, func_analysis);
+            f = JSRenameBuiltinsVisitor.apply(f, func_analysis);
 
             // Fifth transformer: add var declarations for every local and temp variable.
             JSAddVarDeclsVisitor.apply(f);
