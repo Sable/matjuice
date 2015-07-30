@@ -20,6 +20,7 @@ import ast.ASTNode;
 import ast.ForStmt;
 import ast.WhileStmt;
 import matjuice.jsast.*;
+import matjuice.utils.JsAstUtils;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
@@ -57,25 +58,13 @@ public class JSCopyArrayParams {
             if (commonBlock != null) {
                 StmtBlock jsBlock = f.getFromTIRBlock(commonBlock);
                 List<Stmt> stmts = jsBlock.getStmtList();
-                stmts.insertChild(copyStmt(p.getName()), 0);
+                stmts.insertChild(JsAstUtils.copyStmt(p.getName()), 0);
                 jsBlock.setStmtList(stmts);
             }
         }
         return f;
     }
 
-    /**
-     * Create a copy statement in the JS AST
-     * @param varname variable name to copy
-     * @return foo = foo["mj_clone"]()
-     */
-    private static StmtExpr copyStmt(String varname) {
-        return new StmtExpr(
-                new ExprAssign(
-                        new ExprId(varname),
-                        new ExprCall(new ExprPropertyGet(new ExprId(varname), new ExprString("mj_clone")), new List<Expr>())
-                ));
-    }
 
     /**
      * Given a Tamer function and the name of a formal parameter, return the set of
@@ -106,7 +95,7 @@ public class JSCopyArrayParams {
         }
 
         // The parents were accumulated in inner-most to outer-most order.  Reverse that
-        // list and keep only the nodes up to the first loop statement.
+        // list and keep only the statement lists up to the first loop statement.
         Collections.reverse(enclosing);
         java.util.List<TIRStatementList> nonLoopEnclosing = new ArrayList<>();
         for (ASTNode node: enclosing) {

@@ -16,8 +16,7 @@
 
 package matjuice.utils;
 
-import matjuice.jsast.ASTNode;
-import matjuice.jsast.Stmt;
+import matjuice.jsast.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
@@ -60,5 +59,18 @@ public class JsAstUtils {
     public static Stmt copyingTIRStmt(Stmt from, Stmt to) {
         to.setTIRStmt(from.getTIRStmt());
         return to;
+    }
+
+    /**
+     * Create a copy statement in the JS AST
+     * @param varname variable name to copy
+     * @return foo = foo["mj_clone"]()
+     */
+    public static StmtExpr copyStmt(String varname) {
+        return new StmtExpr(
+                new ExprAssign(
+                        new ExprId(varname),
+                        new ExprCall(new ExprPropertyGet(new ExprId(varname), new ExprString("mj_clone")), new List<Expr>())
+                ));
     }
 }
