@@ -126,8 +126,17 @@ public class Main {
             // First transformer: copy all array parameters that are written to in the function.
             // The analysis returns extra information through an out parameter: the set of
             // formal parameters that have been copied.
-            Set<String> copiedParameters = new HashSet<String>();
+            Set<String> copiedParameters = new HashSet<>();
             f = JSCopyArrayParams.apply(f, func_analysis, copiedParameters);
+
+            Set<String> formalParameters = new HashSet<>();
+            for (matjuice.jsast.Parameter param: f.getParamList()) {
+                formalParameters.add(param.getName());
+            }
+
+            PointsToAnalysis pt_analysis = new PointsToAnalysis(f.getTIRFunction(), formalParameters, copiedParameters);
+            pt_analysis.analyze();
+
 
             // Second transformer: replace functions with operators (e.g. add(x, 1) --> x+1)
             if (opts.renameOperators) {
