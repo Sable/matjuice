@@ -23,8 +23,8 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         initialMap = new HashMap<>();
         MallocSite globalSite = new MallocSite();
         for (String param: paramNames) {
-            Set<MallocSite> singletonSite = new HashSet<MallocSite>();
-            singletonSite.add(globalSite);
+            Set<MallocSite> singletonSite = new HashSet<>();
+            singletonSite.add(copiedParameters.contains(param) ? new MallocSite() : globalSite);
             initialMap.put(param, singletonSite);
         }
     }
