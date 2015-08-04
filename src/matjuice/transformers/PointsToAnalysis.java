@@ -3,6 +3,9 @@ package matjuice.transformers;
 import analysis.ForwardAnalysis;
 import ast.ASTNode;
 import natlab.tame.tir.TIRCopyStmt;
+import natlab.tame.tir.TIRFunction;
+import natlab.tame.tir.TIRNode;
+import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 import natlab.tame.tir.analysis.TIRAbstractSimpleStructuralForwardAnalysis;
 
 import java.util.Map;
@@ -69,5 +72,30 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         currentOutSet.remove(stmt.getVarName());
         currentOutSet.put(stmt.getVarName(), new HashSet<>(currentInSet.get(stmt.getRHS().getVarName())));
         outFlowSets.put(stmt, copy(currentOutSet));
+    }
+
+    @Override
+    public void caseStmt(ast.Stmt node) {
+        inFlowSets.put(node, copy(currentInSet));
+        currentOutSet = copy(currentInSet);
+        outFlowSets.put(node, copy(currentOutSet));
+    }
+
+    public void print(ast.ASTNode node) {
+        class Printer extends TIRAbstractNodeCaseHandler {
+            @Override
+            public void caseASTNode(ASTNode astNode) {
+                for (int i = 0; i < astNode.getNumChild(); ++i) {
+                    astNode.getChild(i).analyze(this);
+                }
+            }
+
+            @Override
+            public void caseStmt(ast.Stmt node) {
+                System.out.printf("VFB> %s : %s\n", node.getPrettyPrinted(), getOutFlowSets().get(node));
+            }
+        }
+
+        node.analyze(new Printer());
     }
 }

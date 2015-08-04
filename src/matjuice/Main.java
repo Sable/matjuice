@@ -136,6 +136,7 @@ public class Main {
 
             PointsToAnalysis pt_analysis = new PointsToAnalysis(f.getTIRFunction(), formalParameters, copiedParameters);
             pt_analysis.analyze();
+            pt_analysis.print(f.getTIRFunction());
 
 
             // Second transformer: replace functions with operators (e.g. add(x, 1) --> x+1)
