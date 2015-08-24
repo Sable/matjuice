@@ -26,17 +26,17 @@ import java.util.*;
 import matjuice.codegen.JSASTGenerator;
 import matjuice.jsast.Function;
 import matjuice.jsast.Program;
-import matjuice.jsast.Stmt;
 import matjuice.pretty.Pretty;
 import matjuice.transformers.*;
 import natlab.tame.BasicTamerTool;
+import natlab.tame.tir.TIRArraySetStmt;
 import natlab.tame.tir.TIRFunction;
-import natlab.tame.tir.TIRStatementList;
-import natlab.tame.tir.TIRStmt;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
+import natlab.toolkits.analysis.core.ReachingDefs;
+import natlab.toolkits.analysis.core.UseDefDefUseChain;
 import natlab.toolkits.filehandling.GenericFile;
 import natlab.toolkits.path.FileEnvironment;
 
@@ -134,9 +134,12 @@ public class Main {
                 formalParameters.add(param.getName());
             }
 
+            // Second part of pass-by-value transformation: find out the locals that need to be copied
+            // and add the necessary copy statements.
             PointsToAnalysis pt_analysis = new PointsToAnalysis(f.getTIRFunction(), formalParameters, copiedParameters);
             pt_analysis.analyze();
             pt_analysis.print(f.getTIRFunction());
+            f = JSCopyLocals.apply(f, formalParameters);
 
 
             // Second transformer: replace functions with operators (e.g. add(x, 1) --> x+1)
