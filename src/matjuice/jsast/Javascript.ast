@@ -14,37 +14,42 @@
  *  limitations under the License.
  */
 
-Program      ::= Function:Function*;
-Function     ::= [FunctionName:FunctionName] Param:Parameter* StmtBlock:StmtBlock;
-FunctionName ::= <Name:String>;
-Parameter    ::= <Name:String>;
+Program ::= Function:Function*;
+Function ::= <FunctionName:String> Param:Identifier* Decls:Identifier* Stmt:Stmt*;
+Identifier ::= <Id:String>;
 
 
 abstract Stmt;
-StmtBlock:Stmt      ::= <Braces:Boolean> Stmt:Stmt*;
-StmtExpr:Stmt       ::= Expr:Expr;
-StmtReturn:Stmt     ::= [Expr:Expr];
-StmtIfThenElse:Stmt ::= Cond:Expr Then:StmtBlock Else:StmtBlock;
-StmtWhile:Stmt      ::= Cond:Expr Body:StmtBlock;
-StmtFor:Stmt        ::= Init:Expr Test:Expr Update:Expr Body:StmtBlock;
-StmtVarDecl:Stmt    ::= <Id:String> [Init:Expr];
-StmtComment:Stmt    ::= <Text:String>;
-StmtBreak:Stmt ;
-StmtContinue:Stmt ;
-StmtEmpty:Stmt ;
-
+StmtAssign:Stmt   ::= <Lhs:String> Rhs:Expr;                               // lhs = rhs;
+StmtGet:Stmt      ::= <Lhs:String> <Rhs:String> Index:Expr;                // lhs = rhs[expr];
+StmtSet:Stmt      ::= <Lhs:String> Index:Expr <Rhs:String>;                // lhs[expr] = rhs;
+StmtUnop:Stmt     ::= <Lhs:String> Op:Unop <Rhs:String>;                   // lhs = op rhs;
+StmtBinop:Stmt    ::= <Lhs:String> Op:Binop <Rhs1:String> <Rhs2:String>;   // lhs = rhs1 op rhs2;
+StmtCall:Stmt     ::= <Lhs:String> <Function:String> Argument:Identifier*; // lhs = function(arg1, arg2, ..., argk);
+StmtIf:Stmt       ::= <Condition:String> ThenStmt:Stmt* ElseStmt:Stmt*;    // if (condition) { thenStmt } else { elseStmt }
+StmtWhile:Stmt    ::= <Condition:String> BodyStmt:Stmt*;                   // while (condition) { bodyStmt }
+StmtReturn:Stmt   ::= Return:Identifier*;                                  // return [ret1, ret2, ..., retk]
+StmtBreak:Stmt;                                                            // break;
+StmtContinue:Stmt;                                                         // continue;
+StmtSequence:Stmt ::= Stmt:Stmt*;                                          // Multiple statements to allow for one Tamer statement to generate multiple JS statements.
 
 abstract Expr;
-ExprInt:Expr         ::= <Value:int>;
-ExprFloat:Expr       ::= <Value:double>;
-ExprString:Expr      ::= <Value:String>;
-ExprBoolean:Expr     ::= <Value:Boolean>;
-ExprCall:Expr        ::= Expr:Expr Argument:Expr*;
-ExprAssign:Expr      ::= LHS:Expr RHS:Expr;
-ExprUnaryOp:Expr     ::= <Op:String> Expr:Expr;
-ExprBinaryOp:Expr    ::= <Op:String> LHS:Expr RHS:Expr;
-ExprId:Expr          ::= <Name:String>;
-ExprArray:Expr       ::= Expr:Expr*;
-ExprPropertyGet:Expr ::= Expr:Expr Property:Expr;
-ExprTernary:Expr     ::= Expr:Expr ThenExpr:Expr ElseExpr:Expr;
-ExprColon:Expr ;
+ExprNum:Expr  ::= <Value:Double>; // 3, 3.141592
+ExprId:Expr   ::= <Value:String>; // id
+
+abstract Unop;
+UnopNegate:Unop;
+UnopNot:Unop;
+
+abstract Binop;
+BinopAdd:Binop;
+BinopSub:Binop;
+BinopMul:Binop;
+BinopDiv:Binop;
+BinopMod:Binop;
+BinopEq:Binop;
+BinopNe:Binop;
+BinopLt:Binop;
+BinopLe:Binop;
+BinopGt:Binop;
+BinopGe:Binop;

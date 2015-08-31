@@ -22,6 +22,7 @@ public class Pretty {
     public static int INDENT_WIDTH = 4;
 
     public static PrettyBase EMPTY = text("");
+    public static PrettyBase SPACE = text(" ");
     public static PrettyBase NEWLINE = PrettyLine.getInstance();
 
     public static PrettyBase text(String s) {
