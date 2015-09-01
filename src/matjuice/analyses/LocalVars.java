@@ -57,11 +57,6 @@ public class LocalVars {
         }
 
         @Override
-        public void caseTIRFunction(TIRFunction f) {
-            System.out.println("VFB: Inside function");
-        }
-
-        @Override
         public void caseTIRGlobalStmt(TIRGlobalStmt stmt) {
             for (Name name : stmt.getNameList())
                 globals.add(name.getID());

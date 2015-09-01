@@ -24,6 +24,10 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 import matjuice.analysis.*;
+import matjuice.pretty.Pretty;
+import matjuice.codegen.Generator;
+import matjuice.jsast.Program;
+
 import natlab.tame.BasicTamerTool;
 import natlab.tame.tir.TIRArraySetStmt;
 import natlab.tame.tir.TIRFunction;
@@ -43,7 +47,7 @@ import com.beust.jcommander.Parameters;
 
 public class Main {
     private static void usage() {
-        System.err.println("Usage: java -cp MatJuice.jar natlab.backends.javascript.Main <shape> <matlab file> <output file>");
+        System.err.println("Usage: java -cp MatJuice.jar natlab.backends.javascript.Main <matlab file> <output file> <shapes>");
         System.exit(1);
     }
 
@@ -95,17 +99,19 @@ public class Main {
         FileEnvironment fenv = new FileEnvironment(gfile);
         ValueAnalysis<AggrValue<BasicMatrixValue>> analysis = BasicTamerTool.analyze(shapeDesc, fenv);
 
-        //Program program = new Program();
 
-        // Convert the Tamer instructions to JavaScript.
-        //Map<String, Function> processedFunctions = new HashMap<>();
-        //Map<String, IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>>> functionAnalyses = new HashMap<>();
+        Program program = new Program();
+
         int numFunctions = analysis.getNodeList().size();
         for (int i = 0; i < numFunctions; ++i) {
-            IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = analysis.getNodeList().get(i).getAnalysis();
-            TIRFunction matlabFunction = func_analysis.getTree();
-            System.out.println(matlabFunction.getPrettyPrinted());
-            System.out.println("VFB: " + LocalVars.apply(matlabFunction));
+            IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis = analysis.getNodeList().get(i).getAnalysis();
+            TIRFunction matlabFunction = funcAnalysis.getTree();
+
+            // Identify locals in order to add proper "var" declarations in JS.
+            Set<String> locals = LocalVars.apply(matlabFunction);
+
+            Generator gen = new Generator(locals, funcAnalysis);
+            program.addFunction(gen.genFunction(matlabFunction));
         }
 
         // // Apply JavaScript program transformations
@@ -154,38 +160,38 @@ public class Main {
         //     program.addFunction(f);
         // }
 
-        // // Write out the JavaScript program.
-        // // TODO: Better error messages.
-        // FileWriter out = null;
-        // String[] jsDeps = {
-        //     "mjapi.js",
-        //     "lib.js",
-        // };
+        // Write out the JavaScript program.
+        // TODO: Better error messages.
+        FileWriter out = null;
+        String[] jsDeps = {
+            "mjapi.js",
+            "lib.js",
+        };
 
-        // try {
-        //     out = new FileWriter(javascriptFile);
+        try {
+            out = new FileWriter(javascriptFile);
 
-        //     for (String jsDep: jsDeps) {
-        //         InputStream stream = Main.class.getResourceAsStream("/" + jsDep);
-        //         if (stream != null) {
-        //             BufferedReader in = new BufferedReader(new InputStreamReader(stream));
-        //             out.write(slurp(in));
-        //         }
-        //     }
+            for (String jsDep: jsDeps) {
+                InputStream stream = Main.class.getResourceAsStream("/" + jsDep);
+                if (stream != null) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(stream));
+                    out.write(slurp(in));
+                }
+            }
 
-        //     out.write(String.format("%n%n// BEGINNING OF PROGRAM%n%n"));
-        //     out.write(Pretty.display(program.pp()));
-        //     out.write('\n');
-        // }
-        // catch (IOException exc) {
-        //     System.err.println("Error: cannot write to " + javascriptFile);
-        // }
-        // finally {
-        //     try {
-        //         out.close();
-        //     }
-        //     catch (IOException e) {}
-        // }
+            out.write(String.format("%n%n// BEGINNING OF PROGRAM%n%n"));
+            out.write(Pretty.display(program.pp()));
+            out.write('\n');
+        }
+        catch (IOException exc) {
+            System.err.println("Error: cannot write to " + javascriptFile);
+        }
+        finally {
+            try {
+                out.close();
+            }
+            catch (IOException e) {}
+        }
     }
 }
 

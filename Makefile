@@ -13,7 +13,8 @@ endef
 
 export MATJUICE_SCRIPT
 
-SRC_FILES := $(shell find . -type f -name '*.java')
+#SRC_FILES := $(shell find . -type f -name '*.java')
+SRC_FILES := src/matjuice/Main.java src/matjuice/analyses/LocalVars.java src/matjuice/codegen/Generator.java src/matjuice/pretty/*.java gen/matjuice/jsast/*.java
 
 all: matjuice.jar matjuice.sh jslib
 
