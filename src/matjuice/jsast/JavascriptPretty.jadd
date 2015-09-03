@@ -104,7 +104,8 @@ aspect PrettyPrinter {
             Pretty.text(this.getLhs()),
             Pretty.text(" = "),
             this.getOp().pp(),
-            this.getRhs().pp()
+            this.getRhs().pp(),
+            Pretty.text(";")
             );
     }
 
@@ -114,7 +115,8 @@ aspect PrettyPrinter {
             Pretty.text(" = "),
             this.getRhs1().pp(),
             this.getOp().pp(),
-            this.getRhs2().pp()
+            this.getRhs2().pp(),
+            Pretty.text(";")
             );
     }
 
@@ -184,9 +186,12 @@ aspect PrettyPrinter {
         for (int i = 0; i < ppArgs.length; ++i) {
             ppArgs[i] = this.getArgument(i).pp();
         }
+        PrettyBase assignment =
+          this.hasLhs()
+          ? Pretty.concat(this.getLhs().pp(), Pretty.text(" = "))
+          : Pretty.EMPTY;
         return Pretty.concat(
-            Pretty.text(this.getLhs()),
-            Pretty.text(" = "),
+            assignment,
             Pretty.text(this.getFunction()),
             Pretty.parenthesized(Pretty.separateBy(Pretty.text(", "), ppArgs)),
             Pretty.text(";")

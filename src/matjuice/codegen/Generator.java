@@ -20,6 +20,7 @@ import java.util.Set;
 
 import matjuice.jsast.*;
 
+import natlab.utils.NodeFinder;
 import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
@@ -29,6 +30,8 @@ import natlab.tame.valueanalysis.components.shape.DimValue;
 import natlab.toolkits.rewrite.TempFactory;
 
 public class Generator {
+    private enum LoopDirection {Ascending, Descending, Unknown}
+
     private Set<String> locals;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
 
@@ -69,6 +72,10 @@ public class Generator {
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
         else if (tirStmt instanceof TIRArrayGetStmt)
             return genArrayGetStmt((TIRArrayGetStmt) tirStmt);
+        else if (tirStmt instanceof TIRCallStmt)
+            return genCallStmt((TIRCallStmt) tirStmt);
+        else if (tirStmt instanceof TIRReturnStmt)
+            return genReturnStmt((TIRReturnStmt) tirStmt);
         else if (tirStmt instanceof TIRBreakStmt)
             return new StmtBreak();
         else if (tirStmt instanceof TIRContinueStmt)
@@ -77,6 +84,8 @@ public class Generator {
             return genIfStmt((TIRIfStmt) tirStmt);
         else if (tirStmt instanceof TIRWhileStmt)
             return genWhileStmt((TIRWhileStmt) tirStmt);
+        else if (tirStmt instanceof TIRForStmt)
+            return genForStmt((TIRForStmt) tirStmt);
         else
             return new StmtBreak();
     }
@@ -91,6 +100,54 @@ public class Generator {
         return new StmtAssign(lhs, genExpr(tirStmt.getRHS()));
     }
 
+    private Stmt genReturnStmt(TIRReturnStmt tirStmt) {
+        ast.Function astFunc = NodeFinder.findParent(ast.Function.class, tirStmt);
+
+        List<Identifier> returnNames = new List<>();
+        for (ast.Name outParam: astFunc.getOutputParamList()) {
+            returnNames.add(new Identifier(outParam.getID()));
+        }
+
+        return new StmtReturn(returnNames);
+    }
+
+    private Stmt genCallStmt(TIRCallStmt tirStmt) {
+        List<Expr> args = new List<>();
+        for (ast.Expr expr : tirStmt.getArguments()) {
+            args.add(genExpr(expr));
+        }
+        if (tirStmt.isAssignToVar()) {
+            return new StmtCall(
+                new Opt<Identifier>(new Identifier(tirStmt.getTargetName().getID())),
+                tirStmt.getFunctionName().getID(),
+                args);
+        }
+        else if (tirStmt.getTargets().size() == 0) {
+            return new StmtCall(
+                new Opt<Identifier>(),
+                tirStmt.getFunctionName().getID(),
+                args);
+        }
+        else {
+            String listTarget = newTemp();
+            StmtCall funCall = new StmtCall(
+                new Opt<Identifier>(new Identifier(listTarget)),
+                tirStmt.getFunctionName().getID(),
+                args);
+            StmtSequence seq = new StmtSequence();
+            seq.addStmt(funCall);
+            int i = 0;
+            for (ast.Expr expr : tirStmt.getTargets()) {
+                seq.addStmt(new StmtGet(
+                      ((ast.NameExpr) expr).getName().getID(),
+                      listTarget,
+                      new ExprInt(i)));
+                  ++i;
+            }
+            return seq;
+        }
+    }
+
     private Stmt genArrayGetStmt(TIRArrayGetStmt tirStmt) {
         String dst = getSingleLhs(tirStmt);
         String src = tirStmt.getArrayName().getID();
@@ -103,7 +160,7 @@ public class Generator {
             List<Expr> args = new List<>(new ExprId(src), indices);
             return new StmtSequence(
                 new List<Stmt>(
-                    new StmtCall(dst, "mc_slice", args)
+                    new StmtCall(new Opt<Identifier>(new Identifier(dst)), "mc_slice_get", args)
                     )
                 );
         }
@@ -131,6 +188,51 @@ public class Generator {
         }
         return new StmtWhile(genExpr(tirStmt.getCondition()), bodyStmts);
     }
+
+    private Stmt genForStmt(TIRForStmt tirStmt) {
+        LoopDirection direction = loopDir(tirStmt);
+        switch (direction) {
+        case Ascending:
+        case Descending:
+            return genStaticForStmt(tirStmt, direction);
+        case Unknown:
+            return genDynamicForStmt(tirStmt);
+        default:
+            /* UNREACHABLE */
+            return genDynamicForStmt(tirStmt);
+        }
+    }
+
+    private Stmt genStaticForStmt(TIRForStmt tirStmt, LoopDirection direction) {
+        Binop cmpOp = (direction == LoopDirection.Ascending) ? new BinopLe() : new BinopGe();
+        Binop incOp = (direction == LoopDirection.Ascending) ? new BinopAdd() : new BinopSub();
+
+        String iterVar = tirStmt.getLoopVarName().getID();
+        String cmpVar = newTemp();
+
+        Expr incr = tirStmt.hasIncr() ? new ExprId(tirStmt.getIncName().getID()) : new ExprInt(1);
+
+        List<Stmt> body = new List<Stmt>();
+        for (ast.Stmt bodyStmt : tirStmt.getStatements()) {
+            body.add(genStmt(bodyStmt));
+        }
+        body.add(new StmtBinop(iterVar, incOp, new ExprId(iterVar), incr));
+        body.add(new StmtBinop(cmpVar, cmpOp, new ExprId(iterVar), new ExprId(tirStmt.getUpperName().getID())));
+        StmtWhile whileLoop = new StmtWhile(new ExprId(cmpVar), body);
+
+        return new StmtSequence(
+            new List<Stmt>(
+                new StmtAssign(iterVar, new ExprId(tirStmt.getLowerName().getID())),
+                new StmtBinop(cmpVar, cmpOp, new ExprId(iterVar), new ExprId(tirStmt.getUpperName().getID())),
+                whileLoop
+                )
+            );
+    }
+
+    private Stmt genDynamicForStmt(TIRForStmt tirStmt) {
+        return null;
+    }
+
 
     private Expr genExpr(ast.Expr expr) {
         if (expr instanceof ast.IntLiteralExpr)
@@ -253,4 +355,31 @@ public class Generator {
         BasicMatrixValue bmv = (BasicMatrixValue) val; // Why is this necessary, why does it work?
         return bmv;
     }
+
+    /**
+     * Try to statically determine whether a for loop is ascending or descending.
+     * @param forStmt the foor loop
+     * @return an enum value that says whether the loop ascends, descends or its direction is unknown.
+     */
+    private LoopDirection loopDir(TIRForStmt forStmt) {
+        // If no explicit increment, then it defaults to 1.
+        if (!forStmt.hasIncr()) {
+            return LoopDirection.Ascending;
+        }
+
+        BasicMatrixValue bmv = getBMV(forStmt, forStmt.getIncName());
+
+        if (bmv.hasRangeValue()) {
+            if (bmv.getRangeValue().isRangeValuePositive())
+                return LoopDirection.Ascending;
+            else if (bmv.getRangeValue().isRangeValueNegative())
+                return LoopDirection.Descending;
+            else
+                return LoopDirection.Unknown;
+        }
+        else {
+            return LoopDirection.Unknown;
+        }
+    }
+
 }
