@@ -51,6 +51,7 @@ public class Generator {
         for (ast.Stmt tirStmt : tirFunction.getStmtList()) {
             jsStmts.add(genStmt(tirStmt));
         }
+        jsStmts.add(createReturnStmt(tirFunction));
 
         List<Identifier> jsArgs = new List<>();
         for (ast.Name argName : tirFunction.getInputParamList()) {
@@ -102,7 +103,10 @@ public class Generator {
 
     private Stmt genReturnStmt(TIRReturnStmt tirStmt) {
         ast.Function astFunc = NodeFinder.findParent(ast.Function.class, tirStmt);
+        return createReturnStmt(astFunc);
+    }
 
+    private Stmt createReturnStmt(ast.Function astFunc) {
         List<Identifier> returnNames = new List<>();
         for (ast.Name outParam: astFunc.getOutputParamList()) {
             returnNames.add(new Identifier(outParam.getID()));
