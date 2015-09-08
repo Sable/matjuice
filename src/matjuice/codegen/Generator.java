@@ -45,6 +45,7 @@ public class Generator {
 
 
 
+    // TODO(vfoley): copy input parameters that are written to.
     public Function genFunction(TIRFunction tirFunction) {
         // Do the statements first as some may create new locals.
         List<Stmt> jsStmts = new List<>();
@@ -87,10 +88,20 @@ public class Generator {
             return genWhileStmt((TIRWhileStmt) tirStmt);
         else if (tirStmt instanceof TIRForStmt)
             return genForStmt((TIRForStmt) tirStmt);
+        else if (tirStmt instanceof TIRCommentStmt) {
+            // Return an empty sequence for a comment statement.
+            return new StmtSequence();
+        }
         else
-            return new StmtBreak();
+            throw new UnsupportedOperationException(
+                String.format("Statement not supported: %d. %s [%s]",
+                  tirStmt.getStartLine(),
+                  tirStmt.getPrettyPrinted(),
+                  tirStmt.getClass().getName())
+                );
     }
 
+    // TODO(vfoley): implement copy analysis
     private Stmt genCopyStmt(TIRCopyStmt tirStmt) {
         String lhs = getSingleLhs(tirStmt);
         return new StmtAssign(lhs, genExpr(tirStmt.getRHS()));

@@ -133,8 +133,11 @@ aspect PrettyPrinter {
             Pretty.text("if"),
             Pretty.SPACE,
             Pretty.parenthesized(Pretty.text(this.getCondition())),
+            Pretty.SPACE,
             Pretty.block(ppThen),
+            Pretty.SPACE,
             Pretty.text("else"),
+            Pretty.SPACE,
             Pretty.block(ppElse)
             );
     }
@@ -148,6 +151,7 @@ aspect PrettyPrinter {
             Pretty.text("while"),
             Pretty.SPACE,
             Pretty.parenthesized(this.getCondition().pp()),
+            Pretty.SPACE,
             Pretty.block(ppBody)
             );
     }
