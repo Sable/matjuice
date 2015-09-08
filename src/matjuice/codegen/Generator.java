@@ -219,8 +219,8 @@ public class Generator {
     }
 
     private Stmt genStaticForStmt(TIRForStmt tirStmt, LoopDirection direction) {
-        Binop cmpOp = (direction == LoopDirection.Ascending) ? new BinopLe() : new BinopGe();
-        Binop incOp = (direction == LoopDirection.Ascending) ? new BinopAdd() : new BinopSub();
+        Binop cmpOp = (direction == LoopDirection.Ascending) ? Binop.Le : Binop.Ge;
+        Binop incOp = (direction == LoopDirection.Ascending) ? Binop.Add : Binop.Sub;
 
         String iterVar = tirStmt.getLoopVarName().getID();
         String cmpVar = newTemp();
@@ -339,7 +339,7 @@ public class Generator {
             String currIndexTemp = newTemp();
             String indexComputation = newTemp();
             seq.addStmt(new StmtAssign(currIndexTemp, genExpr(currIndex)));
-            seq.addStmt(new StmtBinop(indexComputation, new BinopSub(), new ExprId(currIndexTemp), new ExprId(oneTemp)));
+            seq.addStmt(new StmtBinop(indexComputation, Binop.Sub, new ExprId(currIndexTemp), new ExprId(oneTemp)));
         }
 
         return seq;

@@ -22,8 +22,6 @@ aspect PrettyPrinter {
 
     public abstract PrettyBase Stmt.pp();
     public abstract PrettyBase Expr.pp();
-    public abstract PrettyBase Unop.pp();
-    public abstract PrettyBase Binop.pp();
 
     public PrettyBase Program.pp() {
         PrettyBase[] ppFunctions = new PrettyBase[this.getNumFunction()];
@@ -245,57 +243,4 @@ aspect PrettyPrinter {
             Pretty.separateBy(Pretty.text(", "), ppExprs)
             );
     }
-
-    public PrettyBase UnopNegate.pp() {
-        return Pretty.text("-");
-    }
-
-    public PrettyBase UnopNot.pp() {
-        return Pretty.text("!");
-    }
-
-    public PrettyBase BinopEq.pp() {
-        return Pretty.text("===");
-    }
-
-    public PrettyBase BinopNe.pp() {
-        return Pretty.text("!==");
-    }
-
-    public PrettyBase BinopLt.pp() {
-        return Pretty.text("<");
-    }
-
-    public PrettyBase BinopLe.pp() {
-        return Pretty.text("<=");
-    }
-
-    public PrettyBase BinopGt.pp() {
-        return Pretty.text(">");
-    }
-
-    public PrettyBase BinopGe.pp() {
-        return Pretty.text(">=");
-    }
-
-    public PrettyBase BinopAdd.pp() {
-        return Pretty.text("+");
-    }
-
-    public PrettyBase BinopSub.pp() {
-        return Pretty.text("-");
-    }
-
-    public PrettyBase BinopMul.pp() {
-        return Pretty.text("*");
-    }
-
-    public PrettyBase BinopDiv.pp() {
-        return Pretty.text("/");
-    }
-
-    public PrettyBase BinopMod.pp() {
-        return Pretty.text("%");
-    }
-
 }
