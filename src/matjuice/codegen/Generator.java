@@ -127,10 +127,15 @@ public class Generator {
     }
 
     private Stmt genCallStmt(TIRCallStmt tirStmt) {
+        if (RenameOperator.isBasicArithmeticOperator(tirStmt, analysis)) {
+            return genOp(tirStmt);
+        }
+
         List<Expr> args = new List<>();
         for (ast.Expr expr : tirStmt.getArguments()) {
             args.add(genExpr(expr));
         }
+
         if (tirStmt.isAssignToVar()) {
             return new StmtCall(
                 new Opt<Identifier>(new Identifier(tirStmt.getTargetName().getID())),
@@ -162,6 +167,15 @@ public class Generator {
             return seq;
         }
     }
+
+    private Stmt genOp(TIRCallStmt tirStmt) {
+        java.util.List<Expr> args = new java.util.ArrayList<>();
+        for (ast.Expr arg : tirStmt.getArguments()) {
+            args.add(genExpr(arg));
+        }
+        return RenameOperator.renameOperator(tirStmt, args);
+    }
+
 
     private Stmt genArrayGetStmt(TIRArrayGetStmt tirStmt) {
         String dst = getSingleLhs(tirStmt);
@@ -310,7 +324,7 @@ public class Generator {
         return new ExprId(expr.getName().getID());
     }
 
-    private String getSingleLhs(TIRAbstractAssignToVarStmt tirStmt) {
+    private static String getSingleLhs(TIRAbstractAssignToVarStmt tirStmt) {
         String ret = null;
         for (String name : tirStmt.getLValues())
             ret = name;
