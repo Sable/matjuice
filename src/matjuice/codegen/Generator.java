@@ -67,6 +67,11 @@ public class Generator {
         return new Function(tirFunction.getName().getID(), jsArgs, jsLocals, jsStmts);
     }
 
+    /**
+     * Transform a Tamer statement into a JavaScript statement.
+     * If an unsupported statement is passed, an exception
+     * is thrown.
+     */
     private Stmt genStmt(ast.Stmt tirStmt) {
         if (tirStmt instanceof TIRCopyStmt)
             return genCopyStmt((TIRCopyStmt) tirStmt);
@@ -102,16 +107,35 @@ public class Generator {
     }
 
     // TODO(vfoley): implement copy analysis
+    /**
+     * Transform a statement of the form
+     *   id1 = id2;
+     * into JavaScript.  If id2 is not a scalar and may be written
+     * to, we perform a deep copy.
+     */
     private Stmt genCopyStmt(TIRCopyStmt tirStmt) {
         String lhs = getSingleLhs(tirStmt);
         return new StmtAssign(lhs, genExpr(tirStmt.getRHS()));
     }
 
+    /**
+     * Transform a statement of the form
+     *   id = lit;
+     * into JavaScript.  Literals are number literals (ints and floats),
+     * strings, etc.
+     */
     private Stmt genAssignLiteralStmt(TIRAssignLiteralStmt tirStmt) {
         String lhs = getSingleLhs(tirStmt);
         return new StmtAssign(lhs, genExpr(tirStmt.getRHS()));
     }
 
+    /**
+     * Transform a statement of the form
+     *   return;
+     * into JavaScript.  Because the way functions return values is
+     * different in MATLAB and JavaScript, the helper `createReturnStmt`
+     * performs some extra work.
+     */
     private Stmt genReturnStmt(TIRReturnStmt tirStmt) {
         ast.Function astFunc = NodeFinder.findParent(ast.Function.class, tirStmt);
         return createReturnStmt(astFunc);
@@ -123,6 +147,8 @@ public class Generator {
             returnNames.add(new Identifier(outParam.getID()));
         }
 
+        // Choosing "return;", "return x;" or "return [x, y];"
+        // is done in the pretty printer.
         return new StmtReturn(returnNames);
     }
 
@@ -338,24 +364,32 @@ public class Generator {
         return ret;
     }
 
-    private StmtSequence genIndexingComputation(
-        TIRStmt tirStmt, ast.Name arrayName, TIRCommaSeparatedList indices) {
+    private StmtSequence genIndexingComputation(TIRArrayGetStmt tirStmt, ast.Name arrayName, TIRCommaSeparatedList indices) {
         BasicMatrixValue bmv = getBMV(tirStmt, arrayName);
         java.util.List<DimValue> dims = bmv.getShape().getDimensions();
 
-        String linearizedIndex = newTemp();
-        String oneTemp = newTemp();
         StmtSequence seq = new StmtSequence();
-        seq.addStmt(new StmtAssign(linearizedIndex, new ExprInt(0)));
-        seq.addStmt(new StmtAssign(oneTemp, new ExprInt(1)));
-        int i = 0;
-        for (ast.Expr currIndex : indices) {
-            String currIndexTemp = newTemp();
-            String indexComputation = newTemp();
-            seq.addStmt(new StmtAssign(currIndexTemp, genExpr(currIndex)));
-            seq.addStmt(new StmtBinop(indexComputation, Binop.Sub, new ExprId(currIndexTemp), new ExprId(oneTemp)));
-        }
 
+        String stride = newTemp();
+        String linearizedIndex = newTemp();
+        String scratch = newTemp();
+
+        seq.addStmt(new StmtAssign(stride, new ExprInt(1)));
+        seq.addStmt(new StmtAssign(linearizedIndex, new ExprInt(0)));
+
+        int i = 0;
+        for (ast.Expr tirIndex : indices) {
+            seq.addStmt(new StmtBinop(scratch, Binop.Sub, genExpr(tirIndex), new ExprInt(1)));
+            seq.addStmt(new StmtBinop(scratch, Binop.Mul, new ExprId(scratch), new ExprId(stride)));
+            seq.addStmt(new StmtBinop(linearizedIndex, Binop.Add, new ExprId(linearizedIndex), new ExprId(scratch)));
+
+            DimValue currDim = dims.get(i);
+            if (currDim.hasIntValue()) {
+                seq.addStmt(new StmtBinop(stride, Binop.Mul, new ExprId(stride), new ExprInt(currDim.getIntValue())));
+            }
+            ++i;
+        }
+        seq.addStmt(new StmtGet(getSingleLhs(tirStmt), arrayName.getID(), new ExprId(linearizedIndex)));
         return seq;
     }
 
