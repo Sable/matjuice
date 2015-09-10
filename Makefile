@@ -1,5 +1,6 @@
 BUILD_DIR := bin
 GEN_DIR := gen
+SRC_DIR := src
 MATJUICE_JAR := matjuice.jar
 MATJUICE_SH := matjuice.sh
 MCLAB_CORE_PATH ?= $(HOME)/workspace/mclab-core
@@ -13,12 +14,32 @@ endef
 
 export MATJUICE_SCRIPT
 
-#SRC_FILES := $(shell find . -type f -name '*.java')
-SRC_FILES := src/matjuice/Main.java src/matjuice/analyses/LocalVars.java src/matjuice/codegen/Generator.java src/matjuice/codegen/RenameOperator.java src/matjuice/utils/Utils.java gen/matjuice/jsast/*.java
+AST_FILES	:= src/matjuice/jsast/*.ast src/matjuice/jsast/*.jadd
+PRETTY_FILES	:= src/matjuice/pretty/*.java
+SRC_FILES	:= src/matjuice/Main.java src/matjuice/analyses/*.java src/matjuice/codegen/*.java src/matjuice/utils/*.java
 
-all: matjuice.jar matjuice.sh jslib
+all: build_dir gen_dir pretty jsast matjuice jslib matjuice.jar matjuice.sh
 
-matjuice.jar: generate_ast matjuice jslib
+build_dir:
+	mkdir -p $(BUILD_DIR)
+
+gen_dir:
+	mkdir -p $(GEN_DIR)
+
+pretty: $(PRETTY_FILES)
+	javac -g -d $(BUILD_DIR) $(PRETTY_FILES)
+
+jsast: pretty $(AST_FILES)
+	java -jar $(MCLAB_CORE_PATH)/lib/jastadd2-2.1.9/jastadd2.jar --o $(GEN_DIR) --package=matjuice.jsast src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPretty.jadd
+	javac -g -d $(BUILD_DIR) -cp $(BUILD_DIR) $(GEN_DIR)/matjuice/jsast/*.java $(SRC_DIR)/matjuice/jsast/Binop.java $(SRC_DIR)/matjuice/jsast/Unop.java
+
+
+matjuice: $(SRC_FILES)
+	javac -g -d $(BUILD_DIR) -cp $(BUILD_DIR):$(NATLAB_PATH)/McLabCore.jar $(SRC_FILES)
+
+# all: matjuice.jar matjuice.sh jslib
+
+matjuice.jar:
 	jar cf $(MATJUICE_JAR) -C bin matjuice
 	jar uf $(MATJUICE_JAR) -C gen lib.js
 	jar uf $(MATJUICE_JAR) -C src/matjuice/lib/ mjapi.js
@@ -30,24 +51,8 @@ matjuice.sh: matjuice.jar
 jslib: src/matjuice/lib/lib.sjs
 	sjs -o $(GEN_DIR)/lib.js -r $<
 
-matjuice: $(SRC_FILES)
-	mkdir -p $(BUILD_DIR)
-	javac -g -d $(BUILD_DIR) -cp $(BUILD_DIR):$(NATLAB_PATH)/McLabCore.jar $(GEN_DIR)/matjuice/jsast/*.java $^
-
-generate_ast: js_operators src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPretty.jadd
-	mkdir -p $(GEN_DIR)
-	java -jar $(MCLAB_CORE_PATH)/lib/jastadd2-2.1.9/jastadd2.jar --o $(GEN_DIR) --package=matjuice.jsast src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPretty.jadd
-
-js_operators: pretty src/matjuice/jsast/Unop.java src/matjuice/jsast/Binop.java
-	mkdir -p $(BUILD_DIR)
-	javac -g -d $(BUILD_DIR) -cp $(BUILD_DIR) src/matjuice/jsast/Unop.java src/matjuice/jsast/Binop.java
-
-pretty: src/matjuice/pretty/*.java
-	mkdir -p $(BUILD_DIR)
-	javac -g -d $(BUILD_DIR) $^
-
 clean:
 	rm -rf $(BUILD_DIR) $(GEN_DIR) $(MATJUICE_JAR) $(MATJUICE_SH)
 
 
-.PHONY: all clean generate_ast matjuice jslib
+.PHONY: all clean build_dir gen_dir pretty jsast matjuice jslib
