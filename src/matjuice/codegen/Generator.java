@@ -258,6 +258,10 @@ public class Generator {
         }
     }
 
+
+    /**
+     * Generate a for loop when the direction can be known statically.
+     */
     private Stmt genStaticForStmt(TIRForStmt tirStmt, LoopDirection direction) {
         Binop cmpOp = (direction == LoopDirection.Ascending) ? Binop.Le : Binop.Ge;
         Binop incOp = (direction == LoopDirection.Ascending) ? Binop.Add : Binop.Sub;
@@ -284,8 +288,44 @@ public class Generator {
             );
     }
 
+
     private Stmt genDynamicForStmt(TIRForStmt tirStmt) {
-        return null;
+        String funcList = newTemp();
+        String testFunc = newTemp();
+        String updateFunc = newTemp();
+        StmtSequence seq = new StmtSequence();
+
+        Expr from = new ExprId(tirStmt.getLowerName().getID());
+        Expr to = new ExprId(tirStmt.getUpperName().getID());
+        Expr step = tirStmt.hasIncr() ? new ExprId(tirStmt.getIncName().getID()) : new ExprInt(1);
+        Expr loopVar = new ExprId(tirStmt.getLoopVarName().getID());
+
+        seq.addStmt(new StmtCall(
+              new Opt<Identifier>(new Identifier(funcList)),
+              "loop_direction",
+              new List<Expr>(from, step, to)
+              )
+            );
+        seq.addStmt(new StmtGet(testFunc, funcList, new ExprInt(0)));
+        seq.addStmt(new StmtGet(updateFunc, funcList, new ExprInt(1)));
+
+        String testVar = newTemp();
+        seq.addStmt(new StmtCall(new Opt<>(new Identifier(testVar)), testFunc, new List<Expr>(loopVar, to)));
+
+        List<Stmt> body = new List<>();
+        for (ast.Stmt bodyStmt : tirStmt.getStatements()) {
+            body.add(genStmt(bodyStmt));
+        }
+        body.add(new StmtCall(
+              new Opt<>(new Identifier(tirStmt.getLoopVarName().getID())),
+              updateFunc,
+              new List<>(loopVar, step)));
+        body.add(new StmtCall(
+              new Opt<>(new Identifier(testVar)),
+              testFunc,
+              new List<>(loopVar, to)));
+        seq.addStmt(new StmtWhile(new ExprId(testVar), body));
+        return seq;
     }
 
 

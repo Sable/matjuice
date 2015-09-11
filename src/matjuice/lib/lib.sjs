@@ -861,3 +861,22 @@ function mc_resize(array, new_index) {
     new_array.set(array, 0);
     return new_array;
 }
+
+
+function loop_direction(from, step, to) {
+    if (from < to) {
+        if (step <= 0)
+            return [mc_const_false, mc_plus_SS];
+        else
+            return [mc_le_SS, mc_plus_SS];
+    }
+    else if (from > to) {
+        if (step >= 0)
+            return [mc_const_false, mc_minus_SS];
+        else
+            return [mc_ge_SS, mc_minus_SS];
+    }
+    else {
+        return [mc_eq_SS, mc_plus_SS];
+    }
+}

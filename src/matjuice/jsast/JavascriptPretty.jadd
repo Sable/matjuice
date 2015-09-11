@@ -80,7 +80,8 @@ aspect PrettyPrinter {
                 Pretty.text("["),
                 Pretty.text("]"),
                 this.getIndex().pp()
-                )
+                ),
+            Pretty.text(";")
             );
     }
 
@@ -93,7 +94,8 @@ aspect PrettyPrinter {
                 this.getIndex().pp()
                 ),
             Pretty.text(" = "),
-            Pretty.text(this.getRhs())
+            Pretty.text(this.getRhs()),
+            Pretty.text(";")
             );
     }
 
