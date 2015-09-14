@@ -14,7 +14,9 @@ public enum Binop {
     Lt("<"),
     Le("<="),
     Gt(">"),
-    Ge(">=");
+    Ge(">="),
+    And("&&"),
+    Or("||");
 
     private String jsOperator;
 

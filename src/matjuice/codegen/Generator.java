@@ -19,6 +19,7 @@ package matjuice.codegen;
 import java.util.Set;
 
 import matjuice.jsast.*;
+import matjuice.utils.Utils;
 
 import natlab.utils.NodeFinder;
 import natlab.tame.tir.*;
@@ -30,7 +31,7 @@ import natlab.tame.valueanalysis.components.shape.DimValue;
 import natlab.toolkits.rewrite.TempFactory;
 
 public class Generator {
-    private enum LoopDirection {Ascending, Descending, Unknown}
+    private enum LoopDirection {Ascending, Descending, NonMoving, Unknown}
 
     private Set<String> locals;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
@@ -220,7 +221,28 @@ public class Generator {
                 );
         }
         else {
-            return genIndexingComputation(tirStmt, tirStmt.getArrayName(), tirStmt.getIndices());
+            String linearizedIndex = newTemp();
+            String arrayName = tirStmt.getArrayName().getID();
+            StmtSequence seq = genIndexingComputation(
+                tirStmt, arrayName, tirStmt.getIndices(), linearizedIndex);
+
+            // Bounds check
+            String lessThanZero = newTemp();
+            String numElementClosure = newTemp();
+            String numElements = newTemp();
+            String greaterThanEnd = newTemp();
+            String outOfBounds = newTemp();
+            seq.addStmt(new StmtGet(numElementClosure, arrayName, new ExprString("mj_numel")));
+            seq.addStmt(new StmtCall(new Opt<>(new Identifier(numElements)), numElementClosure, new List<>()));
+            seq.addStmt(new StmtBinop(lessThanZero, Binop.Lt, new ExprId(linearizedIndex), new ExprInt(0)));
+            seq.addStmt(new StmtBinop(greaterThanEnd, Binop.Ge, new ExprId(linearizedIndex), new ExprId(numElements)));
+            seq.addStmt(new StmtBinop(outOfBounds, Binop.Or, new ExprId(lessThanZero), new ExprId(greaterThanEnd)));
+            seq.addStmt(new StmtIf(outOfBounds,
+                new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds")))),
+                new List<>()));
+
+            seq.addStmt(new StmtGet(getSingleLhs(tirStmt), arrayName, new ExprId(linearizedIndex)));
+            return seq;
         }
     }
 
@@ -264,7 +286,6 @@ public class Generator {
      */
     private Stmt genStaticForStmt(TIRForStmt tirStmt, LoopDirection direction) {
         Binop cmpOp = (direction == LoopDirection.Ascending) ? Binop.Le : Binop.Ge;
-        Binop incOp = (direction == LoopDirection.Ascending) ? Binop.Add : Binop.Sub;
 
         String iterVar = tirStmt.getLoopVarName().getID();
         String cmpVar = newTemp();
@@ -275,7 +296,7 @@ public class Generator {
         for (ast.Stmt bodyStmt : tirStmt.getStatements()) {
             body.add(genStmt(bodyStmt));
         }
-        body.add(new StmtBinop(iterVar, incOp, new ExprId(iterVar), incr));
+        body.add(new StmtBinop(iterVar, Binop.Add, new ExprId(iterVar), incr));
         body.add(new StmtBinop(cmpVar, cmpOp, new ExprId(iterVar), new ExprId(tirStmt.getUpperName().getID())));
         StmtWhile whileLoop = new StmtWhile(new ExprId(cmpVar), body);
 
@@ -290,9 +311,7 @@ public class Generator {
 
 
     private Stmt genDynamicForStmt(TIRForStmt tirStmt) {
-        String funcList = newTemp();
         String testFunc = newTemp();
-        String updateFunc = newTemp();
         StmtSequence seq = new StmtSequence();
 
         Expr from = new ExprId(tirStmt.getLowerName().getID());
@@ -301,13 +320,11 @@ public class Generator {
         Expr loopVar = new ExprId(tirStmt.getLoopVarName().getID());
 
         seq.addStmt(new StmtCall(
-              new Opt<Identifier>(new Identifier(funcList)),
+              new Opt<Identifier>(new Identifier(testFunc)),
               "loop_direction",
               new List<Expr>(from, step, to)
               )
             );
-        seq.addStmt(new StmtGet(testFunc, funcList, new ExprInt(0)));
-        seq.addStmt(new StmtGet(updateFunc, funcList, new ExprInt(1)));
 
         String testVar = newTemp();
         seq.addStmt(new StmtCall(new Opt<>(new Identifier(testVar)), testFunc, new List<Expr>(loopVar, to)));
@@ -316,10 +333,11 @@ public class Generator {
         for (ast.Stmt bodyStmt : tirStmt.getStatements()) {
             body.add(genStmt(bodyStmt));
         }
-        body.add(new StmtCall(
-              new Opt<>(new Identifier(tirStmt.getLoopVarName().getID())),
-              updateFunc,
-              new List<>(loopVar, step)));
+        body.add(new StmtBinop(
+              tirStmt.getLoopVarName().getID(),
+              Binop.Add,
+              loopVar,
+              step));
         body.add(new StmtCall(
               new Opt<>(new Identifier(testVar)),
               testFunc,
@@ -404,14 +422,13 @@ public class Generator {
         return ret;
     }
 
-    private StmtSequence genIndexingComputation(TIRArrayGetStmt tirStmt, ast.Name arrayName, TIRCommaSeparatedList indices) {
-        BasicMatrixValue bmv = getBMV(tirStmt, arrayName);
+    private StmtSequence genIndexingComputation(TIRArrayGetStmt tirStmt, String arrayName, TIRCommaSeparatedList indices, String linearizedIndex) {
+        BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, arrayName);
         java.util.List<DimValue> dims = bmv.getShape().getDimensions();
 
         StmtSequence seq = new StmtSequence();
 
         String stride = newTemp();
-        String linearizedIndex = newTemp();
         String scratch = newTemp();
 
         seq.addStmt(new StmtAssign(stride, new ExprInt(1)));
@@ -429,14 +446,13 @@ public class Generator {
             }
             ++i;
         }
-        seq.addStmt(new StmtGet(getSingleLhs(tirStmt), arrayName.getID(), new ExprId(linearizedIndex)));
         return seq;
     }
 
     private boolean isSlicingOperation(TIRArrayGetStmt tirStmt) {
         for (ast.Expr index : tirStmt.getIndices()) {
             ast.Name indexName = ((ast.NameExpr) index).getName();
-            BasicMatrixValue bmv = getBMV(tirStmt, indexName);
+            BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, indexName.getID());
             if (!bmv.getShape().isScalar())
                 return true;
         }
@@ -447,16 +463,6 @@ public class Generator {
         String tmp = TempFactory.genFreshTempString();
         locals.add(tmp);
         return tmp;
-    }
-
-    private BasicMatrixValue getBMV(TIRStmt tirStmt, ast.Name name) {
-        AggrValue<BasicMatrixValue> val = analysis
-          .getOutFlowSets()
-          .get(tirStmt)
-          .get(name.getID())
-          .getSingleton();
-        BasicMatrixValue bmv = (BasicMatrixValue) val; // Why is this necessary, why does it work?
-        return bmv;
     }
 
     /**
@@ -470,7 +476,7 @@ public class Generator {
             return LoopDirection.Ascending;
         }
 
-        BasicMatrixValue bmv = getBMV(forStmt, forStmt.getIncName());
+        BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, forStmt, forStmt.getIncName().getID());
 
         if (bmv.hasRangeValue()) {
             if (bmv.getRangeValue().isRangeValuePositive())
@@ -484,5 +490,4 @@ public class Generator {
             return LoopDirection.Unknown;
         }
     }
-
 }

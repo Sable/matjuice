@@ -114,7 +114,9 @@ aspect PrettyPrinter {
             Pretty.text(this.getLhs()),
             Pretty.text(" = "),
             this.getRhs1().pp(),
+            Pretty.text(" "),
             this.getOp().pp(),
+            Pretty.text(" "),
             this.getRhs2().pp(),
             Pretty.text(";")
             );

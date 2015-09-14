@@ -866,17 +866,17 @@ function mc_resize(array, new_index) {
 function loop_direction(from, step, to) {
     if (from < to) {
         if (step <= 0)
-            return [mc_const_false, mc_plus_SS];
+            return mc_const_false;
         else
-            return [mc_le_SS, mc_plus_SS];
+            return mc_le_SS;
     }
     else if (from > to) {
         if (step >= 0)
-            return [mc_const_false, mc_minus_SS];
+            return mc_const_false;
         else
-            return [mc_ge_SS, mc_minus_SS];
+            return mc_ge_SS;
     }
     else {
-        return [mc_eq_SS, mc_plus_SS];
+        return mc_eq_SS;
     }
 }
