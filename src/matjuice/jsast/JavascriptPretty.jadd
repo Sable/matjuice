@@ -127,9 +127,21 @@ aspect PrettyPrinter {
         for (int i = 0; i < ppThen.length; ++i) {
             ppThen[i] = this.getThenStmt(i).pp();
         }
-        PrettyBase[] ppElse = new PrettyBase[this.getNumElseStmt()];
-        for (int i = 0; i < ppElse.length; ++i) {
-            ppElse[i] = this.getElseStmt(i).pp();
+        PrettyBase ppElse;
+        if (this.getNumElseStmt() == 0) {
+            ppElse = Pretty.EMPTY;
+        }
+        else {
+            PrettyBase[] elseStmts = new PrettyBase[this.getNumElseStmt()];
+            for (int i = 0; i < elseStmts.length; ++i) {
+                elseStmts[i] = this.getElseStmt(i).pp();
+            }
+            ppElse = Pretty.concat(
+                Pretty.SPACE,
+                Pretty.text("else"),
+                Pretty.SPACE,
+                Pretty.block(elseStmts)
+                );
         }
         return Pretty.concat(
             Pretty.text("if"),
@@ -137,10 +149,7 @@ aspect PrettyPrinter {
             Pretty.parenthesized(Pretty.text(this.getCondition())),
             Pretty.SPACE,
             Pretty.block(ppThen),
-            Pretty.SPACE,
-            Pretty.text("else"),
-            Pretty.SPACE,
-            Pretty.block(ppElse)
+            ppElse
             );
     }
 

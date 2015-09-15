@@ -80,6 +80,8 @@ public class Generator {
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
         else if (tirStmt instanceof TIRArrayGetStmt)
             return genArrayGetStmt((TIRArrayGetStmt) tirStmt);
+        else if (tirStmt instanceof TIRArraySetStmt)
+            return genArraySetStmt((TIRArraySetStmt) tirStmt);
         else if (tirStmt instanceof TIRCallStmt)
             return genCallStmt((TIRCallStmt) tirStmt);
         else if (tirStmt instanceof TIRReturnStmt)
@@ -207,7 +209,7 @@ public class Generator {
     private Stmt genArrayGetStmt(TIRArrayGetStmt tirStmt) {
         String dst = getSingleLhs(tirStmt);
         String src = tirStmt.getArrayName().getID();
-        if (isSlicingOperation(tirStmt)) {
+        if (isSlicingOperation(tirStmt, tirStmt.getIndices())) {
             ExprList indices = new ExprList();
             for (ast.Expr index : tirStmt.getIndices()) {
                 indices.addValue(genExpr(index));
@@ -242,6 +244,50 @@ public class Generator {
                 new List<>()));
 
             seq.addStmt(new StmtGet(getSingleLhs(tirStmt), arrayName, new ExprId(linearizedIndex)));
+            return seq;
+        }
+    }
+
+    private Stmt genArraySetStmt(TIRArraySetStmt tirStmt) {
+        String dst = tirStmt.getArrayName().getID();
+        String src = tirStmt.getValueName().getID();
+        if (isSlicingOperation(tirStmt, tirStmt.getIndices())) {
+            ExprList indices = new ExprList();
+            for (ast.Expr index : tirStmt.getIndices()) {
+                indices.addValue(genExpr(index));
+            }
+
+            List<Expr> args = new List<>(new ExprId(dst), new ExprId(src), indices);
+            return new StmtSequence(
+                new List<Stmt>(
+                    new StmtCall(new Opt<Identifier>(), "mc_slice_set", args)
+                    )
+                );
+        }
+        else {
+            String linearizedIndex = newTemp();
+            String arrayName = tirStmt.getArrayName().getID();
+            StmtSequence seq = genIndexingComputation(tirStmt, arrayName, tirStmt.getIndices(), linearizedIndex);
+
+            // Bounds check
+            String lessThanZero = newTemp();
+            String numElementClosure = newTemp();
+            String numElements = newTemp();
+            String greaterThanEnd = newTemp();
+            seq.addStmt(new StmtGet(numElementClosure, arrayName, new ExprString("mj_numel")));
+            seq.addStmt(new StmtCall(new Opt<>(new Identifier(numElements)), numElementClosure, new List<>()));
+            seq.addStmt(new StmtBinop(lessThanZero, Binop.Lt, new ExprId(linearizedIndex), new ExprInt(0)));
+            seq.addStmt(new StmtIf(
+                  lessThanZero,
+                  new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds")))),
+                  new List<>()));
+            seq.addStmt(new StmtBinop(greaterThanEnd, Binop.Ge, new ExprId(linearizedIndex), new ExprId(numElements)));
+            seq.addStmt(new StmtIf(
+                  greaterThanEnd,
+                  new List<>(new StmtCall(new Opt<>(new Identifier(arrayName)), "mc_resize", new List<>(new ExprId(arrayName), new ExprId(linearizedIndex)))),
+                  new List<>()));
+
+            seq.addStmt(new StmtSet(arrayName, new ExprId(linearizedIndex), tirStmt.getValueName().getID()));
             return seq;
         }
     }
@@ -422,7 +468,7 @@ public class Generator {
         return ret;
     }
 
-    private StmtSequence genIndexingComputation(TIRArrayGetStmt tirStmt, String arrayName, TIRCommaSeparatedList indices, String linearizedIndex) {
+    private StmtSequence genIndexingComputation(TIRStmt tirStmt, String arrayName, TIRCommaSeparatedList indices, String linearizedIndex) {
         BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, arrayName);
         java.util.List<DimValue> dims = bmv.getShape().getDimensions();
 
@@ -449,8 +495,8 @@ public class Generator {
         return seq;
     }
 
-    private boolean isSlicingOperation(TIRArrayGetStmt tirStmt) {
-        for (ast.Expr index : tirStmt.getIndices()) {
+    private boolean isSlicingOperation(TIRStmt tirStmt, TIRCommaSeparatedList indices) {
+        for (ast.Expr index : indices) {
             ast.Name indexName = ((ast.NameExpr) index).getName();
             BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, indexName.getID());
             if (!bmv.getShape().isScalar())
