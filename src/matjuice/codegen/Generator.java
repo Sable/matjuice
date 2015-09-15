@@ -165,23 +165,25 @@ public class Generator {
             args.add(genExpr(expr));
         }
 
+        String functionName = BuiltinRenamer.getFunctionName(tirStmt, analysis);
+
         if (tirStmt.isAssignToVar()) {
             return new StmtCall(
                 new Opt<Identifier>(new Identifier(tirStmt.getTargetName().getID())),
-                tirStmt.getFunctionName().getID(),
+                functionName,
                 args);
         }
         else if (tirStmt.getTargets().size() == 0) {
             return new StmtCall(
                 new Opt<Identifier>(),
-                tirStmt.getFunctionName().getID(),
+                functionName,
                 args);
         }
         else {
             String listTarget = newTemp();
             StmtCall funCall = new StmtCall(
                 new Opt<Identifier>(new Identifier(listTarget)),
-                tirStmt.getFunctionName().getID(),
+                functionName,
                 args);
             StmtSequence seq = new StmtSequence();
             seq.addStmt(funCall);

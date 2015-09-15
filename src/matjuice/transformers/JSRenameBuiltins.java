@@ -20,11 +20,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Arrays;
 
+import matjuice.jsast.*;
+
 import natlab.tame.builtin.Builtin;
 import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
-import matjuice.jsast.*;
+import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
+
 
 /**
  * Rename JavaScript function calls; the prefix "mc_" is added to all built-in
