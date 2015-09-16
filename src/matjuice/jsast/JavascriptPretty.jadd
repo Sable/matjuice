@@ -41,7 +41,8 @@ aspect PrettyPrinter {
         for (int i = 0; i < ppParams.length; ++i) {
             ppParams[i] = this.getParam(i).pp();
         }
-        PrettyBase[] ppBody = new PrettyBase[this.getNumDecl() + this.getNumStmt()];
+
+        PrettyBase[] ppBody = new PrettyBase[this.getNumDecl() + 1];
         for (int i = 0; i < this.getNumDecl(); ++i) {
             ppBody[i] = Pretty.concat(
                 Pretty.text("var"),
@@ -50,9 +51,10 @@ aspect PrettyPrinter {
                 Pretty.text(";")
                 );
         }
-        for (int i = 0; i < this.getNumStmt(); ++i) {
-            ppBody[this.getNumDecl() + i] = this.getStmt(i).pp();
-        }
+
+        ppBody[ppBody.length - 1] = this.getStmts().pp();
+
+
         return Pretty.concat(
             Pretty.text("function"),
             Pretty.SPACE,
@@ -123,24 +125,16 @@ aspect PrettyPrinter {
     }
 
     public PrettyBase StmtIf.pp() {
-        PrettyBase[] ppThen = new PrettyBase[this.getNumThenStmt()];
-        for (int i = 0; i < ppThen.length; ++i) {
-            ppThen[i] = this.getThenStmt(i).pp();
-        }
-        PrettyBase ppElse;
-        if (this.getNumElseStmt() == 0) {
-            ppElse = Pretty.EMPTY;
-        }
-        else {
-            PrettyBase[] elseStmts = new PrettyBase[this.getNumElseStmt()];
-            for (int i = 0; i < elseStmts.length; ++i) {
-                elseStmts[i] = this.getElseStmt(i).pp();
-            }
+        PrettyBase ppThenStmts = this.getThenStmts().pp();
+
+        PrettyBase ppElse = Pretty.EMPTY;
+        if (this.getElseStmts().hasStmt()) {
+            PrettyBase ppElseStmts = this.getElseStmts().pp();
             ppElse = Pretty.concat(
                 Pretty.SPACE,
                 Pretty.text("else"),
                 Pretty.SPACE,
-                Pretty.block(elseStmts)
+                Pretty.block(ppElseStmts)
                 );
         }
         return Pretty.concat(
@@ -148,16 +142,13 @@ aspect PrettyPrinter {
             Pretty.SPACE,
             Pretty.parenthesized(Pretty.text(this.getCondition())),
             Pretty.SPACE,
-            Pretty.block(ppThen),
+            Pretty.block(ppThenStmts),
             ppElse
             );
     }
 
     public PrettyBase StmtWhile.pp() {
-        PrettyBase[] ppBody = new PrettyBase[this.getNumBodyStmt()];
-        for (int i = 0; i < ppBody.length; ++i) {
-            ppBody[i] = this.getBodyStmt(i).pp();
-        }
+        PrettyBase ppBody = this.getBodyStmts().pp();
         return Pretty.concat(
             Pretty.text("while"),
             Pretty.SPACE,

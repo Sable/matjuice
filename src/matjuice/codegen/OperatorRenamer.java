@@ -10,7 +10,7 @@ import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
 import java.util.HashMap;
 
-public class RenameOperator {
+public class OperatorRenamer {
     private static HashMap<String, Binop> binaryOps = new HashMap<>();
     private static HashMap<String, Unop> unaryOps = new HashMap<>();
 

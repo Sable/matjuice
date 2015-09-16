@@ -15,23 +15,23 @@
  */
 
 Program ::= Function:Function*;
-Function ::= <FunctionName:String> Param:Identifier* Decl:Identifier* Stmt:Stmt*;
+Function ::= <FunctionName:String> Param:Identifier* Decl:Identifier* Stmts:StmtSequence;
 Identifier ::= <Id:String>;
 
 
 abstract Stmt;
-StmtAssign:Stmt   ::= <Lhs:String> Rhs:Expr;                         // lhs = rhs;
-StmtGet:Stmt      ::= <Lhs:String> <Rhs:String> Index:Expr;          // lhs = rhs[expr];
-StmtSet:Stmt      ::= <Lhs:String> Index:Expr <Rhs:String>;          // lhs[expr] = rhs;
-StmtUnop:Stmt     ::= <Lhs:String> <Op:matjuice.jsast.Unop> Rhs:Expr; // lhs = op rhs;
-StmtBinop:Stmt    ::= <Lhs:String> <Op:matjuice.jsast.Binop> Rhs1:Expr Rhs2:Expr; // lhs = rhs1 op rhs2;
-StmtCall:Stmt     ::= [Lhs:Identifier] <Function:String> Argument:Expr*; // lhs = function(arg1, arg2, ..., argk);
-StmtIf:Stmt       ::= <Condition:String> ThenStmt:Stmt* ElseStmt:Stmt*;  // if (condition) { thenStmt } else { elseStmt }
-StmtWhile:Stmt    ::= Condition:Expr BodyStmt:Stmt*;                 // while (condition) { bodyStmt }
-StmtReturn:Stmt   ::= Return:Identifier*;                            // return [ret1, ret2, ..., retk]
-StmtBreak:Stmt;                                                      // break;
-StmtContinue:Stmt;                                                   // continue;
-StmtSequence:Stmt ::= Stmt:Stmt*;                                    // Multiple statements to allow for one Tamer statement to generate multiple JS statements.
+StmtAssign:Stmt   ::= <Lhs:String> Rhs:Expr;                                            // lhs = rhs;
+StmtGet:Stmt      ::= <Lhs:String> <Rhs:String> Index:Expr;                             // lhs = rhs[expr];
+StmtSet:Stmt      ::= <Lhs:String> Index:Expr <Rhs:String>;                             // lhs[expr] = rhs;
+StmtUnop:Stmt     ::= <Lhs:String> <Op:matjuice.jsast.Unop> Rhs:Expr;                   // lhs = op rhs;
+StmtBinop:Stmt    ::= <Lhs:String> <Op:matjuice.jsast.Binop> Rhs1:Expr Rhs2:Expr;       // lhs = rhs1 op rhs2;
+StmtCall:Stmt     ::= [Lhs:Identifier] <Function:String> Argument:Expr*;                // lhs = function(arg1, arg2, ..., argk);
+StmtIf:Stmt       ::= <Condition:String> ThenStmts:StmtSequence ElseStmts:StmtSequence; // if (condition) { thenStmt } else { elseStmt }
+StmtWhile:Stmt    ::= Condition:Expr BodyStmts:StmtSequence;                            // while (condition) { bodyStmt }
+StmtReturn:Stmt   ::= Return:Identifier*;                                               // return [ret1, ret2, ..., retk]
+StmtBreak:Stmt;                                                                         // break;
+StmtContinue:Stmt;                                                                      // continue;
+StmtSequence:Stmt ::= Stmt:Stmt*;                                                       // Multiple statements to allow for one Tamer statement to generate multiple JS statements.
 
 abstract Expr;
 ExprInt:Expr      ::= <Value:Integer>; // 3

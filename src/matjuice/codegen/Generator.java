@@ -49,11 +49,8 @@ public class Generator {
     // TODO(vfoley): copy input parameters that are written to.
     public Function genFunction(TIRFunction tirFunction) {
         // Do the statements first as some may create new locals.
-        List<Stmt> jsStmts = new List<>();
-        for (ast.Stmt tirStmt : tirFunction.getStmtList()) {
-            jsStmts.add(genStmt(tirStmt));
-        }
-        jsStmts.add(createReturnStmt(tirFunction));
+        StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
+        jsStmts.addStmt(createReturnStmt(tirFunction));
 
         List<Identifier> jsArgs = new List<>();
         for (ast.Name argName : tirFunction.getInputParamList()) {
@@ -156,7 +153,7 @@ public class Generator {
     }
 
     private Stmt genCallStmt(TIRCallStmt tirStmt) {
-        if (RenameOperator.isBasicArithmeticOperator(tirStmt, analysis)) {
+        if (OperatorRenamer.isBasicArithmeticOperator(tirStmt, analysis)) {
             return genOp(tirStmt);
         }
 
@@ -204,7 +201,7 @@ public class Generator {
         for (ast.Expr arg : tirStmt.getArguments()) {
             args.add(genExpr(arg));
         }
-        return RenameOperator.renameOperator(tirStmt, args);
+        return OperatorRenamer.renameOperator(tirStmt, args);
     }
 
 
@@ -242,8 +239,8 @@ public class Generator {
             seq.addStmt(new StmtBinop(greaterThanEnd, Binop.Ge, new ExprId(linearizedIndex), new ExprId(numElements)));
             seq.addStmt(new StmtBinop(outOfBounds, Binop.Or, new ExprId(lessThanZero), new ExprId(greaterThanEnd)));
             seq.addStmt(new StmtIf(outOfBounds,
-                new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds")))),
-                new List<>()));
+                new StmtSequence(new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds"))))),
+                new StmtSequence()));
 
             seq.addStmt(new StmtGet(getSingleLhs(tirStmt), arrayName, new ExprId(linearizedIndex)));
             return seq;
@@ -281,13 +278,13 @@ public class Generator {
             seq.addStmt(new StmtBinop(lessThanZero, Binop.Lt, new ExprId(linearizedIndex), new ExprInt(0)));
             seq.addStmt(new StmtIf(
                   lessThanZero,
-                  new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds")))),
-                  new List<>()));
+                  new StmtSequence(new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds"))))),
+                  new StmtSequence()));
             seq.addStmt(new StmtBinop(greaterThanEnd, Binop.Ge, new ExprId(linearizedIndex), new ExprId(numElements)));
             seq.addStmt(new StmtIf(
                   greaterThanEnd,
-                  new List<>(new StmtCall(new Opt<>(new Identifier(arrayName)), "mc_resize", new List<>(new ExprId(arrayName), new ExprId(linearizedIndex)))),
-                  new List<>()));
+                  new StmtSequence(new List<>(new StmtCall(new Opt<>(new Identifier(arrayName)), "mc_resize", new List<>(new ExprId(arrayName), new ExprId(linearizedIndex))))),
+                  new StmtSequence()));
 
             seq.addStmt(new StmtSet(arrayName, new ExprId(linearizedIndex), tirStmt.getValueName().getID()));
             return seq;
@@ -295,23 +292,16 @@ public class Generator {
     }
 
     private Stmt genIfStmt(TIRIfStmt tirStmt) {
-        List<Stmt> thenStmts = new List<>();
-        for (ast.Stmt thenStmt : tirStmt.getIfStatements()) {
-            thenStmts.add(genStmt(thenStmt));
-        }
-        List<Stmt> elseStmts = new List<>();
-        for (ast.Stmt elseStmt : tirStmt.getElseStatements()) {
-            elseStmts.add(genStmt(elseStmt));
-        }
-        return new StmtIf(tirStmt.getConditionVarName().getID(), thenStmts, elseStmts);
+        return new StmtIf(
+            tirStmt.getConditionVarName().getID(),
+            genStmtList(tirStmt.getIfStatements()),
+            genStmtList(tirStmt.getElseStatements()));
     }
 
     private Stmt genWhileStmt(TIRWhileStmt tirStmt) {
-        List<Stmt> bodyStmts = new List<>();
-        for (ast.Stmt bodyStmt : tirStmt.getStatements()) {
-            bodyStmts.add(genStmt(bodyStmt));
-        }
-        return new StmtWhile(genExpr(tirStmt.getCondition()), bodyStmts);
+        return new StmtWhile(
+            genExpr(tirStmt.getCondition()),
+            genStmtList(tirStmt.getStatements()));
     }
 
     private Stmt genForStmt(TIRForStmt tirStmt) {
@@ -340,12 +330,9 @@ public class Generator {
 
         Expr incr = tirStmt.hasIncr() ? new ExprId(tirStmt.getIncName().getID()) : new ExprInt(1);
 
-        List<Stmt> body = new List<Stmt>();
-        for (ast.Stmt bodyStmt : tirStmt.getStatements()) {
-            body.add(genStmt(bodyStmt));
-        }
-        body.add(new StmtBinop(iterVar, Binop.Add, new ExprId(iterVar), incr));
-        body.add(new StmtBinop(cmpVar, cmpOp, new ExprId(iterVar), new ExprId(tirStmt.getUpperName().getID())));
+        StmtSequence body = genStmtList(tirStmt.getStatements());
+        body.addStmt(new StmtBinop(iterVar, Binop.Add, new ExprId(iterVar), incr));
+        body.addStmt(new StmtBinop(cmpVar, cmpOp, new ExprId(iterVar), new ExprId(tirStmt.getUpperName().getID())));
         StmtWhile whileLoop = new StmtWhile(new ExprId(cmpVar), body);
 
         return new StmtSequence(
@@ -377,20 +364,25 @@ public class Generator {
         String testVar = newTemp();
         seq.addStmt(new StmtCall(new Opt<>(new Identifier(testVar)), testFunc, new List<Expr>(loopVar, to)));
 
-        List<Stmt> body = new List<>();
-        for (ast.Stmt bodyStmt : tirStmt.getStatements()) {
-            body.add(genStmt(bodyStmt));
-        }
-        body.add(new StmtBinop(
+        StmtSequence body = genStmtList(tirStmt.getStatements());
+        body.addStmt(new StmtBinop(
               tirStmt.getLoopVarName().getID(),
               Binop.Add,
               loopVar,
               step));
-        body.add(new StmtCall(
+        body.addStmt(new StmtCall(
               new Opt<>(new Identifier(testVar)),
               testFunc,
               new List<>(loopVar, to)));
         seq.addStmt(new StmtWhile(new ExprId(testVar), body));
+        return seq;
+    }
+
+
+    private StmtSequence genStmtList(TIRStatementList tirStmts) {
+        StmtSequence seq = new StmtSequence();
+        for (ast.Stmt stmt : tirStmts)
+            seq.addStmt(genStmt(stmt));
         return seq;
     }
 
