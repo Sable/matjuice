@@ -462,7 +462,19 @@ public class Generator {
         return ret;
     }
 
+    /**
+     * Take a list of 1-based indices and generate a 0-based linearized index that will be stored
+     * in the variable name referred by [linearizedIndex].
+     */
     private StmtSequence genIndexingComputation(TIRStmt tirStmt, String arrayName, TIRCommaSeparatedList indices, String linearizedIndex) {
+        // Small optimization for when indexing is done with a single index.
+        if (indices.size() == 1) {
+            return new StmtSequence(new List<>(
+                  new StmtBinop(linearizedIndex, Binop.Sub, new ExprId(indices.getName(0).getID()), new ExprInt(1))
+                  ));
+        }
+
+        // General case for >= 2 indices.
         BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, arrayName);
         java.util.List<DimValue> dims = bmv.getShape().getDimensions();
 
@@ -480,10 +492,8 @@ public class Generator {
             seq.addStmt(new StmtBinop(scratch, Binop.Mul, new ExprId(scratch), new ExprId(stride)));
             seq.addStmt(new StmtBinop(linearizedIndex, Binop.Add, new ExprId(linearizedIndex), new ExprId(scratch)));
 
-            DimValue currDim = dims.get(i);
-            if (currDim.hasIntValue()) {
-                seq.addStmt(new StmtBinop(stride, Binop.Mul, new ExprId(stride), new ExprInt(currDim.getIntValue())));
-            }
+            int dimensionSize = (i < dims.size() && dims.get(i).hasIntValue()) ? dims.get(i).getIntValue() : 1;
+            seq.addStmt(new StmtBinop(stride, Binop.Mul, new ExprId(stride), new ExprInt(dimensionSize)));
             ++i;
         }
         return seq;
