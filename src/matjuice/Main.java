@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
 
-import matjuice.analysis.*;
 import matjuice.pretty.Pretty;
 import matjuice.codegen.Generator;
 import matjuice.jsast.Program;
@@ -107,58 +106,9 @@ public class Main {
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis = analysis.getNodeList().get(i).getAnalysis();
             TIRFunction matlabFunction = funcAnalysis.getTree();
 
-            // Identify locals in order to add proper "var" declarations in JS.
-            Set<String> locals = LocalVars.apply(matlabFunction);
-
-            Generator gen = new Generator(locals, funcAnalysis);
+            Generator gen = new Generator(funcAnalysis);
             program.addFunction(gen.genFunction(matlabFunction));
         }
-
-        // // Apply JavaScript program transformations
-        // for (Map.Entry<String, Function> entry: processedFunctions.entrySet()) {
-        //     Function f = entry.getValue();
-
-        //     IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> func_analysis = functionAnalyses.get(entry.getKey());
-
-        //     // First transformer: copy all array parameters that are written to in the function.
-        //     // The analysis returns extra information through an out parameter: the set of
-        //     // formal parameters that have been copied.
-        //     Set<String> copiedParameters = new HashSet<>();
-        //     f = JSCopyArrayParams.apply(f, func_analysis, copiedParameters);
-
-        //     Set<String> formalParameters = new HashSet<>();
-        //     for (matjuice.jsast.Parameter param: f.getParamList()) {
-        //         formalParameters.add(param.getName());
-        //     }
-
-        //     // Second part of pass-by-value transformation: find out the locals that need to be copied
-        //     // and add the necessary copy statements.
-        //     PointsToAnalysis pt_analysis = new PointsToAnalysis(f.getTIRFunction(), formalParameters, copiedParameters);
-        //     pt_analysis.analyze();
-        //     pt_analysis.print(f.getTIRFunction());
-        //     f = JSCopyLocals.apply(f, formalParameters);
-
-
-        //     // Second transformer: replace functions with operators (e.g. add(x, 1) --> x+1)
-        //     if (opts.renameOperators) {
-        //         f = JSRenameOperatorsVisitor.apply(f, func_analysis);
-        //     }
-
-        //     // Third transformer: replace functions with array indexing
-        //     // (e.g. mc_array_get(a, [1,2]) --> a[(1-1) + a.mj_size()[0]*(2-1)])
-        //     if (opts.renameArrayIndexing) {
-        //         f = JSArrayIndexingVisitor.apply(f, func_analysis, opts.enableBoundsChecking);
-        //     }
-
-        //     // Fourth transformer: Replace builtin functions with specialized versions
-        //     // (e.g. mc_sqrt(9) --> mc_sqrt_S(9))
-        //     f = JSRenameBuiltinsVisitor.apply(f, func_analysis);
-
-        //     // Fifth transformer: add var declarations for every local and temp variable.
-        //     JSAddVarDeclsVisitor.apply(f);
-
-        //     program.addFunction(f);
-        // }
 
         // Write out the JavaScript program.
         // TODO: Better error messages.

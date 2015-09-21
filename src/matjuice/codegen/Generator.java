@@ -21,6 +21,7 @@ import java.util.Map;
 
 import matjuice.jsast.*;
 import matjuice.analysis.FormalParameterCopier;
+import matjuice.analysis.LocalVars;
 import matjuice.utils.Utils;
 
 import natlab.utils.NodeFinder;
@@ -39,20 +40,26 @@ public class Generator {
     private Map<TIRStatementList, Set<String>> writtenParams;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
 
-    public Generator(
-        Set<String> locals,
-        IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis
-        ) {
-        this.locals = locals;
+    public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
         this.analysis = analysis;
     }
 
 
 
-    // TODO(vfoley): copy input parameters that are written to.
+    /**
+     * Transform a Tamer function into a JavaScript function.
+     *
+     * - "var" declarations will be added for the locals and temporaries
+     * - formal parameters that might be written to will be cloned
+     * - a return statement of the output parameter list is added at
+     *   the end of the function
+     */
     public Function genFunction(TIRFunction tirFunction) {
+        // Identify the parameters that need to be copied.
         writtenParams = FormalParameterCopier.apply(tirFunction);
-        System.out.printf("VFB: %s\n", writtenParams);
+
+        // Identify locals in order to add proper "var" declarations in JS.
+        locals = LocalVars.apply(tirFunction);
 
         // Do the statements first as some may create new locals.
         StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
@@ -112,7 +119,6 @@ public class Generator {
                 );
     }
 
-    // TODO(vfoley): implement copy analysis
     /**
      * Transform a statement of the form
      *   id1 = id2;
@@ -158,6 +164,12 @@ public class Generator {
         return new StmtReturn(returnNames);
     }
 
+    /**
+     * Transform a call statement.  If the function is a MATLAB operator
+     * (e.g. plus() or rem()), the call is replaced by a StmtBinop.  If
+     * the function is a built-in, the "mc_" prefix is prepended and a
+     * suffix describing the type (e.g. mc_plus_MM) will be appended.
+     */
     private Stmt genCallStmt(TIRCallStmt tirStmt) {
         if (OperatorRenamer.isBasicArithmeticOperator(tirStmt, analysis)) {
             return genOp(tirStmt);
@@ -202,6 +214,10 @@ public class Generator {
         }
     }
 
+    /**
+     * Transform an operator function call into an operator operation.
+     * E.g. plus(x, y) => x+y
+     */
     private Stmt genOp(TIRCallStmt tirStmt) {
         java.util.List<Expr> args = new java.util.ArrayList<>();
         for (ast.Expr arg : tirStmt.getArguments()) {
@@ -211,6 +227,13 @@ public class Generator {
     }
 
 
+    /**
+     * Transform a MATLAB array fetching operation into a JavaScript get
+     * operation.  If the indices might represent a slice, a call to the
+     * dynamic "mc_slice_get" function is made.  If all the indices are scalars
+     * we convert them to a linearized index, perform bounds check on that index
+     * and generate a JavaScript StmtGet.
+     */
     private Stmt genArrayGetStmt(TIRArrayGetStmt tirStmt) {
         String dst = getSingleLhs(tirStmt);
         String src = tirStmt.getArrayName().getID();
@@ -253,6 +276,13 @@ public class Generator {
         }
     }
 
+    /**
+     * Transform a MATLAB array set operation into a JavaScript set
+     * operation.  If the indices might represent a slice, a call to the
+     * dynamic "mc_slice_set" function is made.  If all the indices are scalars
+     * we convert them to a linearized index, perform bounds check on that index
+     * and generate a JavaScript StmtSet.
+     */
     private Stmt genArraySetStmt(TIRArraySetStmt tirStmt) {
         String dst = tirStmt.getArrayName().getID();
         String src = tirStmt.getValueName().getID();
@@ -297,6 +327,11 @@ public class Generator {
         }
     }
 
+    /**
+     * Transform a MATLAB if statement into a JavaScript if statement.  The
+     * pretty printer is responsible for not displaying the else part if it
+     * contains 0 statements.
+     */
     private Stmt genIfStmt(TIRIfStmt tirStmt) {
         return new StmtIf(
             tirStmt.getConditionVarName().getID(),
@@ -304,12 +339,20 @@ public class Generator {
             genStmtList(tirStmt.getElseStatements()));
     }
 
+    /**
+     * Transform a MATLAB while statement into JavaScript.
+     */
     private Stmt genWhileStmt(TIRWhileStmt tirStmt) {
         return new StmtWhile(
             genExpr(tirStmt.getCondition()),
             genStmtList(tirStmt.getStatements()));
     }
 
+    /**
+     * Transform a MATLAB for loop into an equivalent JavaScript
+     * while loop.  For simplicity's sake, our JavaScript IR does
+     * not have a for loop.
+     */
     private Stmt genForStmt(TIRForStmt tirStmt) {
         LoopDirection direction = loopDir(tirStmt);
         switch (direction) {
