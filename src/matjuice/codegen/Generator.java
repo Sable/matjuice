@@ -17,8 +17,10 @@
 package matjuice.codegen;
 
 import java.util.Set;
+import java.util.Map;
 
 import matjuice.jsast.*;
+import matjuice.analysis.FormalParameterCopier;
 import matjuice.utils.Utils;
 
 import natlab.utils.NodeFinder;
@@ -34,6 +36,7 @@ public class Generator {
     private enum LoopDirection {Ascending, Descending, NonMoving, Unknown}
 
     private Set<String> locals;
+    private Map<TIRStatementList, Set<String>> writtenParams;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
 
     public Generator(
@@ -48,6 +51,9 @@ public class Generator {
 
     // TODO(vfoley): copy input parameters that are written to.
     public Function genFunction(TIRFunction tirFunction) {
+        writtenParams = FormalParameterCopier.apply(tirFunction);
+        System.out.printf("VFB: %s\n", writtenParams);
+
         // Do the statements first as some may create new locals.
         StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
         jsStmts.addStmt(createReturnStmt(tirFunction));
@@ -378,9 +384,25 @@ public class Generator {
         return seq;
     }
 
+    private StmtSequence genCopyStmt(String var) {
+        StmtSequence seq = new StmtSequence();
+
+        String copyMethod = newTemp();
+        seq.addStmt(new StmtGet(copyMethod, var, new ExprString("mj_clone")));
+        seq.addStmt(new StmtCall(new Opt<>(new Identifier(var)), copyMethod, new List<Expr>()));
+        return seq;
+    }
 
     private StmtSequence genStmtList(TIRStatementList tirStmts) {
         StmtSequence seq = new StmtSequence();
+
+        if (writtenParams.containsKey(tirStmts)) {
+            Set<String> paramsToCopy = writtenParams.get(tirStmts);
+            for (String var: paramsToCopy) {
+                seq.addStmt(genCopyStmt(var));
+            }
+        }
+
         for (ast.Stmt stmt : tirStmts)
             seq.addStmt(genStmt(stmt));
         return seq;
