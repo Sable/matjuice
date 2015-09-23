@@ -17,11 +17,13 @@
 package matjuice.codegen;
 
 import java.util.Set;
+import java.util.HashSet;
 import java.util.Map;
 
 import matjuice.jsast.*;
 import matjuice.analysis.FormalParameterCopier;
 import matjuice.analysis.LocalVars;
+import matjuice.analysis.PointsToAnalysis;
 import matjuice.utils.Utils;
 
 import natlab.utils.NodeFinder;
@@ -60,6 +62,22 @@ public class Generator {
 
         // Identify locals in order to add proper "var" declarations in JS.
         locals = LocalVars.apply(tirFunction);
+
+
+        Set<String> paramNames = new HashSet<>();
+        for (ast.Name param : tirFunction.getInputParamList())
+            paramNames.add(param.getID());
+
+        Set<String> copiedParams = new HashSet<>();
+        for (Set<String> copies : writtenParams.values()) {
+            for (String param : copies) {
+                copiedParams.add(param);
+            }
+        }
+
+        PointsToAnalysis pta = new PointsToAnalysis(tirFunction, paramNames, copiedParams);
+        tirFunction.analyze(pta);
+        pta.print(tirFunction);
 
         // Do the statements first as some may create new locals.
         StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
