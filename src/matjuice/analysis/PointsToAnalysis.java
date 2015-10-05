@@ -2,9 +2,7 @@ package matjuice.analysis;
 
 import analysis.ForwardAnalysis;
 import ast.ASTNode;
-import natlab.tame.tir.TIRCopyStmt;
-import natlab.tame.tir.TIRFunction;
-import natlab.tame.tir.TIRNode;
+import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 import natlab.tame.tir.analysis.TIRAbstractSimpleStructuralForwardAnalysis;
 
@@ -13,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Collections;
 
 
 public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis<Map<String, Set<MallocSite>>> {
@@ -21,7 +20,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
     public PointsToAnalysis(ASTNode<?> astNode, Set<String> paramNames, Set<String> copiedParameters) {
         super(astNode);
         initialMap = new HashMap<>();
-        MallocSite globalSite = new MallocSite();
+        MallocSite globalSite = new MallocSite(true);
         for (String param: paramNames) {
             Set<MallocSite> singletonSite = new HashSet<>();
             singletonSite.add(copiedParameters.contains(param) ? new MallocSite() : globalSite);
@@ -52,6 +51,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         return out;
     }
 
+
     @Override
     public Map<String, Set<MallocSite>> copy(Map<String, Set<MallocSite>> in) {
         return new HashMap<>(in);
@@ -59,7 +59,31 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
 
     @Override
     public Map<String, Set<MallocSite>> newInitialFlow() {
-        return initialMap;
+        return copy(initialMap);
+    }
+
+    @Override
+    public void caseTIRFunction(TIRFunction tirFunction) {
+        currentInSet = newInitialFlow();
+        currentOutSet = copy(currentInSet);
+        caseASTNode(tirFunction);
+    }
+
+    @Override
+    public void caseTIRCallStmt(TIRCallStmt stmt) {
+        inFlowSets.put(stmt, copy(currentInSet));
+
+        // Kill the current bindings for the output parameters.
+        for (String varname : stmt.getLValues()) {
+            currentInSet.remove(varname);
+        }
+
+        // Insert new malloc sites
+        for (String varname : stmt.getLValues()) {
+            currentInSet.put(varname, Collections.singleton(new MallocSite()));
+        }
+
+        outFlowSets.put(stmt, copy(currentOutSet));
     }
 
     @Override

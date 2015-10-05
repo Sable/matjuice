@@ -76,7 +76,7 @@ public class Generator {
         }
 
         PointsToAnalysis pta = new PointsToAnalysis(tirFunction, paramNames, copiedParams);
-        tirFunction.analyze(pta);
+        tirFunction.tirAnalyze(pta);
         pta.print(tirFunction);
 
         // Do the statements first as some may create new locals.
