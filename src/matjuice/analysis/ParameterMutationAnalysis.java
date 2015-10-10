@@ -20,6 +20,10 @@ import ast.*;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 
+import natlab.toolkits.analysis.core.Def;
+import natlab.toolkits.analysis.core.ReachingDefs;
+import natlab.toolkits.analysis.core.UseDefDefUseChain;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.HashMap;
@@ -29,11 +33,20 @@ import java.util.List;
 import java.util.Collections;
 
 
-public class FormalParameterCopier {
+public class ParameterMutationAnalysis {
     public static Map<TIRStatementList, Set<String>> apply(TIRFunction f) {
+        // Get a UseDef-DefUse chain that will be used to know if a
+        // use refers to a formal parameter.
+        ReachingDefs rdefs = new ReachingDefs(f);
+        rdefs.analyze();
+        UseDefDefUseChain uddu = UseDefDefUseChain.fromReachingDefs(rdefs);
+
+        // A map between a block and the set of variables that need to
+        // be copied at the beginning of that block.
         Map<TIRStatementList, Set<String>> paramWrites = new HashMap<>();
+
         for (ast.Name paramName : f.getInputParamList()) {
-            Set<TIRArraySetStmt> writeStmts = findWriteStatements(f, paramName.getID());
+            Set<TIRArraySetStmt> writeStmts = findWriteStatements(f, paramName, uddu);
 
             // A parameter that is never written to requires no copy and thus will
             // not be returned in the set of need-to-copy parameters.
@@ -50,6 +63,7 @@ public class FormalParameterCopier {
             paramSet.add(paramName.getID());
             paramWrites.put(commonBlock, paramSet);
         }
+        System.out.printf("VFB: %s\n", paramWrites);
         return paramWrites;
     }
 
@@ -121,10 +135,11 @@ public class FormalParameterCopier {
      * all array write statements to that parameter.
      * @param tf A TIRFunction
      * @param paramName The name of the formal parameter
+     * @param uddu The UseDef-DefUse analysis result
      * @return A set of the TIRArraySetStmt objects that write to the parameter
      */
-    private static Set<TIRArraySetStmt> findWriteStatements(TIRFunction f, String param) {
-        WriteStatementFinder wsf = new WriteStatementFinder(param);
+    private static Set<TIRArraySetStmt> findWriteStatements(TIRFunction f, ast.Name param, UseDefDefUseChain uddu) {
+        WriteStatementFinder wsf = new WriteStatementFinder(param, uddu);
         f.tirAnalyze(wsf);
         return wsf.writeStatements;
     }
@@ -135,15 +150,17 @@ public class FormalParameterCopier {
      */
     private static class WriteStatementFinder extends TIRAbstractNodeCaseHandler {
         public Set<TIRArraySetStmt> writeStatements = new HashSet<>();
-        private String paramName;
+        private ast.Name paramName;
+        private UseDefDefUseChain uddu;
 
-        public WriteStatementFinder(String paramName) {
+        public WriteStatementFinder(ast.Name paramName, UseDefDefUseChain uddu) {
             this.paramName = paramName;
+            this.uddu = uddu;
         }
 
         @Override
         public void caseASTNode(ASTNode astNode) {
-            for(int i = 0; i < astNode.getNumChild(); i++) {
+            for (int i = 0; i < astNode.getNumChild(); i++) {
                 ASTNode child = astNode.getChild(i);
                 if (child instanceof TIRNode) {
                     ((TIRNode) child).tirAnalyze(this);
@@ -156,8 +173,15 @@ public class FormalParameterCopier {
 
         @Override
         public void caseTIRArraySetStmt(TIRArraySetStmt stmt) {
-            if (stmt.getArrayName().getVarName().equals(paramName))
+            System.out.printf("VFB[set]: %s %s %s\n", paramName, stmt.getArrayName(), uddu.getDefs(stmt.getArrayName()));
+            if (uddu.getUses(paramName).contains(stmt.getArrayName())) {
                 writeStatements.add(stmt);
+            }
+        }
+
+        @Override
+        public void caseTIRCallStmt(TIRCallStmt stmt) {
+            System.out.printf("VFB[call]: %s\n", uddu.getDefinedNames((Stmt) stmt));
         }
     }
 

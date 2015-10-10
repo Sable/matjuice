@@ -48,7 +48,7 @@ aspect PrettyPrinter {
                 Pretty.text("var"),
                 Pretty.SPACE,
                 this.getDecl(i).pp(),
-                Pretty.text(";")
+                Pretty.text(" = 0;")
                 );
         }
 

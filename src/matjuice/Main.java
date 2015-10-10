@@ -28,16 +28,18 @@ import matjuice.codegen.Generator;
 import matjuice.jsast.Program;
 
 import natlab.tame.BasicTamerTool;
-import natlab.tame.tir.TIRArraySetStmt;
-import natlab.tame.tir.TIRFunction;
+import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
+
+import natlab.toolkits.analysis.core.Def;
 import natlab.toolkits.analysis.core.ReachingDefs;
 import natlab.toolkits.analysis.core.UseDefDefUseChain;
 import natlab.toolkits.filehandling.GenericFile;
 import natlab.toolkits.path.FileEnvironment;
+
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
