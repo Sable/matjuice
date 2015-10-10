@@ -63,7 +63,6 @@ public class ParameterMutationAnalysis {
             paramSet.add(paramName.getID());
             paramWrites.put(commonBlock, paramSet);
         }
-        System.out.printf("VFB: %s\n", paramWrites);
         return paramWrites;
     }
 
@@ -173,15 +172,9 @@ public class ParameterMutationAnalysis {
 
         @Override
         public void caseTIRArraySetStmt(TIRArraySetStmt stmt) {
-            System.out.printf("VFB[set]: %s %s %s\n", paramName, stmt.getArrayName(), uddu.getDefs(stmt.getArrayName()));
             if (uddu.getUses(paramName).contains(stmt.getArrayName())) {
                 writeStatements.add(stmt);
             }
-        }
-
-        @Override
-        public void caseTIRCallStmt(TIRCallStmt stmt) {
-            System.out.printf("VFB[call]: %s\n", uddu.getDefinedNames((Stmt) stmt));
         }
     }
 
