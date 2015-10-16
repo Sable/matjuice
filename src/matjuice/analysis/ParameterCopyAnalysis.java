@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Collections;
 
 
-public class ParameterMutationAnalysis {
+public class ParameterCopyAnalysis {
     public static Map<TIRStatementList, Set<String>> apply(TIRFunction f) {
         // Get a UseDef-DefUse chain that will be used to know if a
         // use refers to a formal parameter.

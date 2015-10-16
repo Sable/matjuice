@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import matjuice.jsast.*;
-import matjuice.analysis.ParameterMutationAnalysis;
+import matjuice.analysis.ParameterCopyAnalysis;
 import matjuice.analysis.LocalVars;
 import matjuice.analysis.PointsToAnalysis;
 import matjuice.utils.Utils;
@@ -58,7 +58,7 @@ public class Generator {
      */
     public Function genFunction(TIRFunction tirFunction) {
         // Identify the parameters that need to be copied.
-        writtenParams = ParameterMutationAnalysis.apply(tirFunction);
+        writtenParams = ParameterCopyAnalysis.apply(tirFunction);
 
         // Identify locals in order to add proper "var" declarations in JS.
         locals = LocalVars.apply(tirFunction);
