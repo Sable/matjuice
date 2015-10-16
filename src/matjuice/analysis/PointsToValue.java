@@ -30,12 +30,23 @@ public class PointsToValue {
         mallocs.put(m, stmts);
     }
 
+    public Set<TIRStmt> getAliasingStmts(MallocSite m) {
+        return mallocs.getOrDefault(m, new HashSet<>());
+    }
+
     public PointsToValue merge(PointsToValue other) {
-        PointsToValue out = this.copy();
-        for (MallocSite m: out.mallocs.keySet()) {
-            Set<TIRStmt> mergedStmts = out.mallocs.getOrDefault(m, new HashSet<>());
-            mergedStmts.addAll(other.mallocs.get(m));
-            out.mallocs.put(m, mergedStmts);
+        PointsToValue out = new PointsToValue();
+
+        for (MallocSite m: this.mallocs.keySet()) {
+            out.addMallocSite(m);
+            for (TIRStmt stmt: this.getAliasingStmts(m))
+                out.addAliasingStmt(m, stmt);
+        }
+
+        for (MallocSite m: other.mallocs.keySet()) {
+            out.addMallocSite(m);
+            for (TIRStmt stmt: other.getAliasingStmts(m))
+                out.addAliasingStmt(m, stmt);
         }
         return out;
     }
