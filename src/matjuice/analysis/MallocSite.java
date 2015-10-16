@@ -19,10 +19,16 @@ public class MallocSite {
         return isGlobal;
     }
 
+    @Override
     public String toString() {
         if (isGlobal)
             return String.format("GlobalMalloc(%x)", hashCode());
         else
             return String.format("LocalMalloc(%x)", hashCode());
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return this == other;
     }
 }

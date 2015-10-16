@@ -48,6 +48,7 @@ public class PointsToValue {
             for (TIRStmt stmt: other.getAliasingStmts(m))
                 out.addAliasingStmt(m, stmt);
         }
+
         return out;
     }
 
@@ -63,7 +64,14 @@ public class PointsToValue {
         return out;
     }
 
+    @Override
     public String toString() {
         return String.format("PointsToValue(%s)", mallocs);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof PointsToValue &&
+          this.mallocs.equals(((PointsToValue) other).mallocs);
     }
 }
