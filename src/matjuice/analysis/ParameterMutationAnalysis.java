@@ -66,7 +66,7 @@ public class ParameterMutationAnalysis {
         return paramWrites;
     }
 
-        /**
+    /**
      * Given an array write statement, find the enclosing AST nodes that contain it before
      * the first loop is encountered.
      * @param stmt a TIRArraySetStmt

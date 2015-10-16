@@ -1,13 +1,22 @@
 package matjuice.analysis;
 
 public class MallocSite {
-    public boolean isGlobal = false;
+    private boolean isGlobal = false;
 
-    public MallocSite() {
+    public static MallocSite newLocalSite() {
+        return new MallocSite(false);
     }
 
-    public MallocSite(boolean isGlobal) {
+    public static MallocSite newGlobalSite() {
+        return new MallocSite(true);
+    }
+
+    private MallocSite(boolean isGlobal) {
         this.isGlobal = isGlobal;
+    }
+
+    public boolean isGlobal() {
+        return isGlobal;
     }
 
     public String toString() {

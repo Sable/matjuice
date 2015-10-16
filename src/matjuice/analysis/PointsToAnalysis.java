@@ -14,51 +14,64 @@ import java.util.HashSet;
 import java.util.Collections;
 
 
-public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis<Map<String, Set<MallocSite>>> {
-    private Map<String, Set<MallocSite>> initialMap;
+public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis<Map<String, PointsToValue>> {
+    private Map<String, PointsToValue> initialMap;
 
-    public PointsToAnalysis(ASTNode<?> astNode, Set<String> paramNames, Set<String> copiedParameters) {
+    public PointsToAnalysis(ASTNode<?> astNode, Set<String> paramNames) {
         super(astNode);
         initialMap = new HashMap<>();
-        MallocSite globalSite = new MallocSite(true);
+        MallocSite globalSite = MallocSite.newGlobalSite();
+
+        // Input parameters point into a common global malloc site.
         for (String param: paramNames) {
-            Set<MallocSite> singletonSite = new HashSet<>();
-            singletonSite.add(copiedParameters.contains(param) ? new MallocSite() : globalSite);
-            initialMap.put(param, singletonSite);
+            PointsToValue ptv = new PointsToValue();
+            ptv.addMallocSite(globalSite);
+            initialMap.put(param, ptv);
         }
     }
 
     /**
-     * Given two maps of malloc sites, "union" them.
+     * Given two maps of PointsToValue, union the malloc sites and the
+     * aliasing statements.
+     *
      * E.g.
-     * in1 = { "A" -> [M1], "B" -> [M2], "C" -> [M1], "D" -> [M4]}
-     * in2 = { "A" -> [M1], "B" -> [M2], "C" -> [M3]}
-     * out = { "A" -> [M1], "B" -> [M2], "C" -> [M1, M3], "D" -> [M4]}
-     * @param in1 the first map of mallocs
-     * @param in2 the second map of mallocs
-     * @return the "union" of the two maps
+     * in1 = { "A": {M1: [Stmt1]}, "B": {M2: [Stmt2]}, "C": {M1: [Stmt1]} }
+     * in2 = { "A": {M1: [Stmt1]}, "B": {M2: [Stmt2]}, "C": {M2: [Stmt2]}, "D": {M3: [Stmt3]} }
+     * out = { "A": {M1: [Stmt1]}, "B": {M2: [Stmt2]}, "C": {M1: [Stmt1], M2: [Stmt2]}, "D": {M3: [Stmt3]} }
+     *
+     * @param in1 the first map of points-to values
+     * @param in2 the second map of points-to values
+     * @return the union of the two maps
      */
     @Override
-    public Map<String, Set<MallocSite>> merge(Map<String, Set<MallocSite>> in1, Map<String, Set<MallocSite>> in2) {
-        Map<String, Set<MallocSite>> out = new HashMap<>(in1);
-        for (Entry<String, Set<MallocSite>> entry : in2.entrySet()) {
+    public Map<String, PointsToValue> merge(Map<String, PointsToValue> in1, Map<String, PointsToValue> in2) {
+        Map<String, PointsToValue> out = copy(in1);
+        for (Entry<String, PointsToValue> entry : in2.entrySet()) {
             String varName = entry.getKey();
-            Set<MallocSite> mallocs = entry.getValue();
-            Set<MallocSite> mergedEntries = out.getOrDefault(varName, new HashSet<>());
-            mergedEntries.addAll(mallocs);
-            out.put(varName, mergedEntries);
+            PointsToValue ptv = entry.getValue();
+
+            out.put(varName, ptv.merge(out.getOrDefault(varName, new PointsToValue())));
         }
+
         return out;
     }
 
 
     @Override
-    public Map<String, Set<MallocSite>> copy(Map<String, Set<MallocSite>> in) {
-        return new HashMap<>(in);
+    public Map<String, PointsToValue> copy(Map<String, PointsToValue> in) {
+        Map<String, PointsToValue> out = new HashMap<>();
+
+        for (Entry<String, PointsToValue> entry : in.entrySet()) {
+            String varName = entry.getKey();
+            PointsToValue ptv = entry.getValue();
+
+            out.put(varName, ptv.copy());
+        }
+        return out;
     }
 
     @Override
-    public Map<String, Set<MallocSite>> newInitialFlow() {
+    public Map<String, PointsToValue> newInitialFlow() {
         return copy(initialMap);
     }
 
@@ -72,15 +85,18 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
     @Override
     public void caseTIRCallStmt(TIRCallStmt stmt) {
         inFlowSets.put(stmt, copy(currentInSet));
+        currentOutSet = copy(currentInSet);
 
-        // Kill the current bindings for the output parameters.
+        // Kill the current points-to values for all output parameters.
         for (String varname : stmt.getLValues()) {
-            currentInSet.remove(varname);
+            currentOutSet.remove(varname);
         }
 
         // Insert new malloc sites
         for (String varname : stmt.getLValues()) {
-            currentInSet.put(varname, Collections.singleton(new MallocSite()));
+            PointsToValue ptv = new PointsToValue();
+            ptv.addMallocSite(MallocSite.newLocalSite());
+            currentOutSet.put(varname, ptv);
         }
 
         outFlowSets.put(stmt, copy(currentOutSet));
@@ -90,8 +106,22 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
     public void caseTIRCopyStmt(TIRCopyStmt stmt) {
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
-        currentOutSet.remove(stmt.getVarName());
-        currentOutSet.put(stmt.getVarName(), new HashSet<>(currentInSet.get(stmt.getRHS().getVarName())));
+
+        String lhs = stmt.getVarName();
+        String rhs = stmt.getSourceName().getID();
+
+        // Kill current information for LHS
+        currentOutSet.remove(lhs);
+
+        // Add the current statement for RHS
+        PointsToValue rhsPtv = currentOutSet.get(rhs);
+        for (MallocSite m: rhsPtv.getMallocSites()) {
+            rhsPtv.addAliasingStmt(m, stmt);
+        }
+
+        // Copy information from RHS into LHS
+        currentOutSet.put(lhs, currentOutSet.get(rhs).copy());
+
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 
@@ -113,7 +143,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
 
             @Override
             public void caseStmt(ast.Stmt node) {
-                System.out.printf("VFB> %s : %s\n", node.getPrettyPrinted(), getOutFlowSets().get(node));
+                System.out.printf("VFB> %s\n        %s\n", node.getPrettyPrinted(), getOutFlowSets().get(node));
             }
         }
 

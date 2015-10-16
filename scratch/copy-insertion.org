@@ -1,0 +1,431 @@
+#+AUTHOR: Vincent Foley
+#+TITLE: Copy insertion
+#+OPTIONS: toc:nil
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \usepackage{palatino}
+
+* Motivation
+
+The semantics of MATLAB dictate that arguments are passed in and out
+of functions by value (copy) and that an assignment statement of the
+form =A = B= creates a copy of /B/.
+
+On the other hand, in JavaScript, array arguments and return values are
+passed by reference and =A = B= is an /aliasing/ statement making
+/A/ and /B/ point to the same memory.
+
+To ensure a proper translation from MATLAB to JavaScript, the copy
+semantics of MATLAB must be respected.  This can be accomplished in
+one of two ways:
+
+1. Generate code with copy statements everywhere, and, optionally, use
+   an analysis + transformation to find the unnecessary copies and
+   conservatively remove them.
+2. Generate code without any copies and use an analysis +
+   transformation to find the program points where copies are
+   necessary and insert them.
+
+In MatJuice we have chosen the second approach.  We shall consider the
+MATLAB code to have JavaScript pass-by-reference semantics and we will
+add copy statements when necessary.
+
+* Goals
+
+We have established a list of goals that we want to attain with this
+analysis:
+
+1. The analysis should be /intra-procedural/; previous work by Lameed
+   and Hendren described a two-stage inter-procedural analysis to
+   remove the unnecessary copies.  In MatJuice, we would like to be
+   able to add the copy statements by looking at only one function at
+   a time.
+2. The transformation should not add an excessive amount of copy
+   statements.  In addition to the copies necessary to respect the
+   MATLAB semantics, some copies may be conservatively inserted when
+   we cannot determine statically if a copy is truly needed or not.
+   We would like to keep the number of such extraneous copies to a
+   minimum.
+3. The program obtained after applying the copy insertion
+   transformation should have the same semantics as MATLAB.
+
+* Motivating example
+
+In this section we will look at a MATLAB function and observe where we
+need to insert copy statements to preserve the proper copy semantics.
+
+#+begin_src matlab
+    function y = f(A, B)
+        if B(1) < 0
+            B(1) = -B(1);
+        end
+        C = A;
+        C(1) = 2*C(2);
+        if A(1)
+            y = C+B;
+        else
+            y = A;
+        end
+    end
+#+end_src
+
+** Input function parameters
+
+In JavaScript, arrays are passed by reference, so in the code example
+above, the write statement into /B/ (=B(1) = -B(1);=) would cause the
+array argument on the caller side to also mutate.  To avoid this, we
+make a copy of /B/ before we assign to it.  Because the write occurs
+only within a conditional statement with no /else/ branch, we can
+avoid some unnecessary copies by putting the copy inside the /if/
+block.
+
+#+begin_src matlab
+  function y = f(A, B)
+      if B(1) < 0
+          B = copy(B);
+          B(1) = -B(1);
+      end
+      C = A;
+      C(1) = 2*C(2);
+      if A(1)
+          y = C+B;
+      else
+          y = A;
+      end
+  end
+#+end_src
+
+** Aliasing statements
+
+In MATLAB, we can understand the statement =A = B= as meaning "make
+/A/ be a /copy/ of /B/".  In JavaScript, the same statement would
+rather have the meaning "make /A/ /point to/ the same memory as /B/".
+
+When aliasing is combined with write statements, the other variables
+that point to the same memory will also see the change.  To avoid this
+situation, if a variable that is /possibly/ aliased is written to, all
+the statements where aliasing happens are found and copies are
+inserted after such statements.
+
+In the example above, the line =C = A;= is such a statement: after its
+execution the variables /A/ and /C/ point to the same memory location.
+On the next line, a write statement modifies /C/.  We wish to avoid
+that statement modifying /A/, and therefore we add a copy of /C/ after
+the aliasing statement.
+
+#+begin_src matlab
+  function y = f(A, B)
+      if B(1) < 0
+          B = copy(B);
+          B(1) = -B(1);
+      end
+      C = A;
+      C = copy(C);
+      C(1) = 2*C(2);
+      if A(1)
+          y = C+B;
+      else
+          y = A;
+      end
+  end
+#+end_src
+
+** Output function parameters
+
+Let us consider what might happen from the side of a caller to /f/; a
+programmer would write a statement such as =Z = f(X, Y)=.  If within
+/f/ the execution path went through the /else/ part of the last /if/
+statement (i.e. =y = A;=) then /Z/ and /X/ would alias.  To avoid this
+situation, if an input parameter pointing to global memory
+(i.e. memory defined outside the body of the function) is assigned to
+an output variable, we add a copy.
+
+
+#+begin_src matlab
+  function y = f(A, B)
+      if B(1) < 0
+          B = copy(B);
+          B(1) = -B(1);
+      end
+      C = A;
+      C = copy(C);
+      C(1) = 2*C(2);
+      if A(1)
+          y = C+B;
+      else
+          y = A;
+          y = copy(y);
+      end
+  end
+#+end_src
+
+** Summary
+
+The final version of function /f/ now respects the MATLAB semantics:
+
+- The array write of /B/ no longer affects the parameter in the caller.
+- /A/ and /C/ are no longer aliases when an array write into /C/ is made.
+- /A/ is copied to ensure that no aliasing occurs in the caller when
+  assigning the result of /f/ to a variable.
+
+In addition, we've been able to avoid making some unnecessary copies:
+
+- /B/ is only copied when its first element is negative.
+- /A/ is only copied if its first element is zero.
+
+* Parameter Mutation Analysis
+** Analysis
+A simple intra-procedural analysis can be used to find the statements
+where an array input parameter is possibly modified.
+
+#+begin_src fundamental
+  param_writes = new Map()
+
+  for each parameter p:
+      for each statement s:
+          if s == A(i) = e and A == p:
+             param_writes[p].add(s)
+#+end_src
+
+In the above code, we wrote =A == p= to mean that the array /A/ being
+indexed is the same as the input parameter /p/.  We implement this by
+making a query on a use-def analysis result.  This ensures that if /p/
+was redefined as a local variable in the body of the function, we
+don't consider that the formal parameter has been modified.
+
+** Transformation
+We transform the function by adding a single copy statement for every
+parameter that is possibly modified in the body.  That copy statement
+is added in the inner-most block that is common to all write
+statements and that is outside of any loop.
+
+#+begin_src fundamental
+  for each key p in param_writes:
+      b = innermost_non_loop(param_writes[p])
+      b.add_stmt(p = copy(p))
+#+end_src
+
+** Possible improvements
+
+*** Loop writes
+
+It could be possible to add more than just a copy statement.  Consider
+the following example:
+
+#+begin_src matlab
+  function f(A)
+      A = copy(A);
+      while cond
+          A(1) = 0;
+      end
+  end
+#+end_src
+
+In the above code, we have added a copy statement outside the loop,
+however the copy will be done regardless of whether the loop is
+actually executed.  A more astute transformation might look like this:
+
+#+begin_src matlab
+  function f(A)
+      if cond
+          A = copy(A);
+          while cond
+              A(1) = 0;
+          end
+      end
+  end
+#+end_src
+
+This transformation would copy /A/ only if the loop is going to be
+executed at least once.
+
+*** Multiple copies
+
+Consider the extreme following case:
+
+#+BEGIN_SRC matlab
+  function f(A)
+      if A(1) = 0
+          A(1) = 42;
+      elseif A(1) = 1
+          g1();
+      .
+      .
+      .
+      elseif A(999) = 999
+          g999();
+      else
+          A(1) = 84;
+      end
+  end
+#+END_SRC
+
+The /if/ statement has 1000 branches, and because an array write will
+occur in two of those, the copy of /A/ will be inserted outside the
+entire /if/ block.  If those two branches represent a small percentage
+of all path executions, a large number of unneeded copies will be
+made.  A JIT compiler may be able to determine that it is worthwhile
+to remove the single copy outside the /if/ block and insert two
+separate copies in the appropriate branches.
+
+* Aliasing statements
+** Analysis
+To track aliasing, we implement a points-to analysis.  This analysis
+is more involved than parameter mutation analysis, so we will describe
+it explicitly in 6 steps:
+
+*** Approximation
+Our approximation is going to be a set of pairs where the first
+element of a pair is a variable name and the second element is a
+memory allocation site.
+
+*** Definition
+Let /v/ be a variable defined at a program point /d/.  We say that at
+a given program point /p/, /v/ points to a memory allocation site /m/
+if there exists a path between /d/ and /p/ that contains no
+redefinition of /v/.
+
+*** Direction
+This is a forward data-flow analysis
+
+*** Merge operation
+Sets are merged with the union ($\cup$) operator.
+
+*** Starting approximations
+- out(START) = { (p, GLOBAL) | p $\in$ params }
+- out(S) = {}
+
+*** Flow equations
+*General formula*: out(S_i) = (in(S_i) - kill(S_i)) + gen(S_i)
+
+**** Assignment statement
+- kill(A = B) = { (A, m) | (A, m) $\in$ in(S_i) }
+- gen(A = B) = { (A, m) | (B, m) $\in$ in(S_i) }
+
+**** Call statement
+- kill([a1, a2, ..., an] = f()) = { (a_i, m) | i $\in$ 1..n, (a_i, m)
+  $\in$ in(S_i) }
+- gen([a1, a2, ..., an] = f()) = let M = malloc in { (a_i, M) | i
+  $\in$ 1..n }
+
+**** Other statements
+- kill(S) = {}
+- gen(S) = {}
+
+*** Example
+#+BEGIN_SRC matlab
+  function f(A)       % (A, mg)
+      B = zeros(10);  % (A, mg) (B, m1)
+      if A(1)         % (A, mg) (B, m1)
+          C = A;      % (A, mg) (B, m1) (C, mg)
+      else            % (A, mg) (B, m1)
+          C = B;      % (A, mg) (B, m1) (C, m1)
+      end             % (A, mg) (B, m1) (C, mg) (C, m1)
+      C(1) = 42;      % (A, mg) (B, m1) (C, mg) (C, m1)
+  end
+#+END_SRC
+
+We say that a variable /A/ is possibly aliased if there exists at
+least one other pair in /in(S_i)/ that points to the same memory.
+
+#+BEGIN_LaTeX
+\[
+    \{ m \mid (A, m) \in in(S) \} \cap \{ m \mid (v, m) \in in(S), v
+    \neq A \} \neq \varnothing
+\]
+#+END_LaTeX
+
+** Transformation
+#+BEGIN_SRC fundamental
+  for each statement s:
+      if s == A(i) = e && A is possibly aliased:
+          stmts = find_aliasing_stmts(A)
+          for each stmt in stmts:
+              stmt.add_sibling(A = copy(A))
+#+END_SRC
+
+When a copy statements are added, the points-to analysis is re-run to
+create a new approximation of points-to relationships.
+
+* Return statements
+** Analysis
+
+The result of the points-to analysis are re-used to fix return
+statements.
+
+** Transformation
+We need to handle two cases: explicit return statements and falling
+through the end of a function.  Both cases are handled in the same
+way, however.
+
+#+BEGIN_SRC fundamental
+  for each output parameter p:
+      if mg is in set of p's malloc sites:
+          stmts = find_aliasing_stmts(p)
+          for stmt in stmts:
+              stmt.add_sibling(p = copy(p))
+#+END_SRC
+
+* Examples
+** Example 1
+#+BEGIN_SRC matlab
+  function B = f(A)                       % (A, mg)
+      if A(1)                             % (A, mg)
+          B = A;                          % (A, mg) (B, mg)
+      else                                % (A, mg)
+          B = zeros(10);                  % (A, mg) (B, m1)
+      end                                 % (A, mg) (B, mg) (B, m1)
+  end                                     % (A, mg) (B, mg) (B, m1)
+#+END_SRC
+
+At the end of the function (a return point), the output parameter /B/
+possibly points to global memory.  We must therefore add copy
+statements for /B/ when it is aliased to global memory.
+
+#+BEGIN_SRC matlab
+  function B = f(A)                       % (A, mg)
+      if A(1)                             % (A, mg)
+          B = A;                          % (A, mg) (B, mg)
+          B = copy(B);                    % (A, mg) (B, m2)
+      else                                % (A, mg)
+          B = zeros(10);                  % (A, mg) (B, m1)
+      end                                 % (A, mg) (B, m2) (B, m1)
+  end                                     % (A, mg) (B, m2) (B, m1)
+#+END_SRC
+
+** Example 2
+#+BEGIN_SRC matlab
+  function f(A)                           % (A, mg)
+      A = g();                            % (A, m1)
+      A(1) = 42;                          % (A, m1)
+  end
+#+END_SRC
+
+In the example above, we redefine the input parameter /A/ on line 2
+and thus the definition that reaches the write on line 3 is no longer
+the formal parameter.  There is no need to make a copy of /A/ at the
+beginning of the function.
+
+** Example 3
+#+BEGIN_SRC matlab
+  function B = f(A)                       % (A, mg)
+      B = zeros(10);                      % (A, mg) (B, m1)
+      while A(1) > 0                      % (A, mg) (B, m1) (B, mg)
+          B = A;                          % (A, mg) (B, mg)
+          A(1) = A(1) - 1;                % (A, mg) (B, mg)
+      end                                 % (A, mg) (B, m1) (B, mg)
+  end                                     % (A, mg) (B, m1) (B, mg)
+#+END_SRC
+
+The output parameter /B/ may point to global memory, therefore we need
+to add a copy statement at the aliasing point.
+
+#+BEGIN_SRC matlab
+  function B = f(A)                       % (A, mg)
+      B = zeros(10);                      % (A, mg) (B, m1)
+      while A(1) > 0                      % (A, mg) (B, m1) (B, m2)
+          B = A;                          % (A, mg) (B, mg)
+          B = copy(B);                    % (A, mg) (B, m2)
+          A(1) = A(1) - 1;                % (A, mg) (B, m2)
+      end                                 % (A, mg) (B, m1) (B, m2)
+  end                                     % (A, mg) (B, m1) (B, m2)
+#+END_SRC

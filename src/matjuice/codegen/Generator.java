@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 import matjuice.jsast.*;
-import matjuice.analysis.FormalParameterCopier;
+import matjuice.analysis.ParameterMutationAnalysis;
 import matjuice.analysis.LocalVars;
 import matjuice.analysis.PointsToAnalysis;
 import matjuice.utils.Utils;
@@ -58,7 +58,7 @@ public class Generator {
      */
     public Function genFunction(TIRFunction tirFunction) {
         // Identify the parameters that need to be copied.
-        writtenParams = FormalParameterCopier.apply(tirFunction);
+        writtenParams = ParameterMutationAnalysis.apply(tirFunction);
 
         // Identify locals in order to add proper "var" declarations in JS.
         locals = LocalVars.apply(tirFunction);
@@ -68,14 +68,7 @@ public class Generator {
         for (ast.Name param : tirFunction.getInputParamList())
             paramNames.add(param.getID());
 
-        Set<String> copiedParams = new HashSet<>();
-        for (Set<String> copies : writtenParams.values()) {
-            for (String param : copies) {
-                copiedParams.add(param);
-            }
-        }
-
-        PointsToAnalysis pta = new PointsToAnalysis(tirFunction, paramNames, copiedParams);
+        PointsToAnalysis pta = new PointsToAnalysis(tirFunction, paramNames);
         tirFunction.tirAnalyze(pta);
         pta.print(tirFunction);
 
