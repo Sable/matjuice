@@ -24,6 +24,7 @@ import matjuice.jsast.*;
 import matjuice.analysis.ParameterCopyAnalysis;
 import matjuice.analysis.LocalVars;
 import matjuice.analysis.PointsToAnalysis;
+import matjuice.transformer.ParameterCopyTransformer;
 import matjuice.utils.Utils;
 
 import natlab.utils.NodeFinder;
@@ -39,7 +40,6 @@ public class Generator {
     private enum LoopDirection {Ascending, Descending, NonMoving, Unknown}
 
     private Set<String> locals;
-    private Map<TIRStatementList, Set<String>> writtenParams;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
 
     public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
@@ -57,12 +57,18 @@ public class Generator {
      *   the end of the function
      */
     public Function genFunction(TIRFunction tirFunction) {
-        // Identify the parameters that need to be copied.
-        writtenParams = ParameterCopyAnalysis.apply(tirFunction);
-
         // Identify locals in order to add proper "var" declarations in JS.
         locals = LocalVars.apply(tirFunction);
 
+        // Identify the parameters that need to be copied.
+        Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(tirFunction);
+        ParameterCopyTransformer.apply(tirFunction, writtenParams);
+
+        System.out.println(writtenParams);
+        System.out.println(tirFunction.getPrettyPrinted());
+
+        if (true)
+            return new Function("EARLYRETURN", new List<>(), new List<>(), new StmtSequence());
 
         Set<String> paramNames = new HashSet<>();
         for (ast.Name param : tirFunction.getInputParamList())
@@ -449,16 +455,9 @@ public class Generator {
 
     private StmtSequence genStmtList(TIRStatementList tirStmts) {
         StmtSequence seq = new StmtSequence();
-
-        if (writtenParams.containsKey(tirStmts)) {
-            Set<String> paramsToCopy = writtenParams.get(tirStmts);
-            for (String var: paramsToCopy) {
-                seq.addStmt(genCopyStmt(var));
-            }
-        }
-
-        for (ast.Stmt stmt : tirStmts)
+        for (ast.Stmt stmt : tirStmts) {
             seq.addStmt(genStmt(stmt));
+        }
         return seq;
     }
 

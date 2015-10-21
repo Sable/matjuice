@@ -17,7 +17,7 @@ export MATJUICE_SCRIPT
 AST_FILES	:= src/matjuice/jsast/Javascript.ast
 JADD_FILES      := src/matjuice/jsast/JavascriptPretty.jadd
 PRETTY_FILES	:= src/matjuice/pretty/*.java
-SRC_FILES	:= src/matjuice/Main.java src/matjuice/analysis/*.java src/matjuice/codegen/*.java src/matjuice/utils/*.java
+SRC_FILES	:= src/matjuice/Main.java src/matjuice/analysis/*.java src/matjuice/transformer/*.java src/matjuice/codegen/*.java src/matjuice/utils/*.java
 
 all:
 	mkdir -p $(BUILD_DIR)
