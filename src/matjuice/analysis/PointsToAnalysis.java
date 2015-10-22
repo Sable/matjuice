@@ -1,5 +1,7 @@
 package matjuice.analysis;
 
+import matjuice.transformer.MJCopyStmt;
+
 import analysis.ForwardAnalysis;
 import ast.ASTNode;
 import natlab.tame.tir.*;
@@ -104,6 +106,11 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
 
     @Override
     public void caseTIRCopyStmt(TIRCopyStmt stmt) {
+        if (stmt instanceof MJCopyStmt) {
+            caseMJCopyStmt((MJCopyStmt) stmt);
+            return;
+        }
+
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
 
@@ -125,6 +132,23 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 
+    public void caseMJCopyStmt(MJCopyStmt stmt) {
+        inFlowSets.put(stmt, copy(currentInSet));
+        currentOutSet = copy(currentInSet);
+        String lhs = stmt.getVarName();
+        currentOutSet.remove(lhs);
+
+
+        MallocSite m = MallocSite.newLocalSite();
+        PointsToValue ptv = new PointsToValue();
+        ptv.addMallocSite(m);
+        ptv.addAliasingStmt(m, stmt);
+
+        currentOutSet.put(lhs, ptv);
+        outFlowSets.put(stmt, copy(currentOutSet));
+    }
+
+
     @Override
     public void caseStmt(ast.Stmt node) {
         inFlowSets.put(node, copy(currentInSet));
@@ -143,7 +167,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
 
             @Override
             public void caseStmt(ast.Stmt node) {
-                System.out.printf("VFB> %s\n        %s\n", node.getPrettyPrinted(), getOutFlowSets().get(node));
+                System.out.printf("MatJuice: %s\n        %s\n", node.getPrettyPrinted(), getOutFlowSets().get(node));
             }
         }
 

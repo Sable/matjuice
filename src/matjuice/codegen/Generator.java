@@ -25,6 +25,7 @@ import matjuice.analysis.ParameterCopyAnalysis;
 import matjuice.analysis.LocalVars;
 import matjuice.analysis.PointsToAnalysis;
 import matjuice.transformer.ParameterCopyTransformer;
+import matjuice.transformer.MJCopyStmt;
 import matjuice.utils.Utils;
 
 import natlab.utils.NodeFinder;
@@ -64,19 +65,12 @@ public class Generator {
         Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(tirFunction);
         ParameterCopyTransformer.apply(tirFunction, writtenParams);
 
-        System.out.println(writtenParams);
-        System.out.println(tirFunction.getPrettyPrinted());
-
-        if (true)
-            return new Function("EARLYRETURN", new List<>(), new List<>(), new StmtSequence());
-
         Set<String> paramNames = new HashSet<>();
         for (ast.Name param : tirFunction.getInputParamList())
             paramNames.add(param.getID());
 
         PointsToAnalysis pta = new PointsToAnalysis(tirFunction, paramNames);
         tirFunction.tirAnalyze(pta);
-        pta.print(tirFunction);
 
         // Do the statements first as some may create new locals.
         StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
@@ -101,7 +95,9 @@ public class Generator {
      * is thrown.
      */
     private Stmt genStmt(ast.Stmt tirStmt) {
-        if (tirStmt instanceof TIRCopyStmt)
+        if (tirStmt instanceof MJCopyStmt)
+            return genMJCopyStmt((MJCopyStmt) tirStmt);
+        else if (tirStmt instanceof TIRCopyStmt)
             return genCopyStmt((TIRCopyStmt) tirStmt);
         else if (tirStmt instanceof TIRAssignLiteralStmt)
             return genAssignLiteralStmt((TIRAssignLiteralStmt) tirStmt);
@@ -134,6 +130,15 @@ public class Generator {
                   tirStmt.getPrettyPrinted(),
                   tirStmt.getClass().getName())
                 );
+    }
+
+    private Stmt genMJCopyStmt(MJCopyStmt tirStmt) {
+        String lhs = getSingleLhs(tirStmt);
+        StmtSequence seq = new StmtSequence();
+        String tmp = newTemp();
+        seq.addStmt(new StmtGet(tmp, lhs, new ExprString("mj_clone")));
+        seq.addStmt(new StmtCall(new Opt<>(new Identifier(lhs)), tmp, new List<>()));
+        return seq;
     }
 
     /**
