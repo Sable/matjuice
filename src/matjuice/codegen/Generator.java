@@ -143,12 +143,7 @@ public class Generator {
 
     private Stmt genMJCopyStmt(MJCopyStmt tirStmt) {
         String lhs = getSingleLhs(tirStmt);
-        return new StmtMethod(
-            new Opt<>(new Identifier(lhs)),
-            "mj_clone",
-            new ExprId(lhs),
-            new List<>()
-            );
+        return new StmtMethod(new Opt<>(new Identifier(lhs)), "mj_clone", new ExprId(lhs), new List<>());
     }
 
     /**
@@ -294,8 +289,6 @@ public class Generator {
             String numElements = newTemp();
             String greaterThanEnd = newTemp();
             String outOfBounds = newTemp();
-            // seq.addStmt(new StmtGet(numElementClosure, arrayName, new ExprString("mj_numel")));
-            // seq.addStmt(new StmtCall(new Opt<>(new Identifier(numElements)), numElementClosure, new List<>()));
             seq.addStmt(new StmtMethod(new Opt<>(new Identifier(numElements)), "mj_numel", new ExprId(arrayName), new List<>()));
             seq.addStmt(new StmtBinop(lessThanZero, Binop.Lt, new ExprId(linearizedIndex), new ExprInt(0)));
             seq.addStmt(new StmtBinop(greaterThanEnd, Binop.Ge, new ExprId(linearizedIndex), new ExprId(numElements)));
