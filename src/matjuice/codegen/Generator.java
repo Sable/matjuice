@@ -24,7 +24,9 @@ import matjuice.jsast.*;
 import matjuice.analysis.ParameterCopyAnalysis;
 import matjuice.analysis.LocalVars;
 import matjuice.analysis.PointsToAnalysis;
+import matjuice.analysis.PointsToValue;
 import matjuice.transformer.ParameterCopyTransformer;
+import matjuice.transformer.CopyInsertion;
 import matjuice.transformer.MJCopyStmt;
 import matjuice.utils.Utils;
 
@@ -69,8 +71,15 @@ public class Generator {
         for (ast.Name param : tirFunction.getInputParamList())
             paramNames.add(param.getID());
 
-        PointsToAnalysis pta = new PointsToAnalysis(tirFunction, paramNames);
-        tirFunction.tirAnalyze(pta);
+        while (true) {
+            PointsToAnalysis pta = new PointsToAnalysis(tirFunction, paramNames);
+            tirFunction.tirAnalyze(pta);
+            pta.print(tirFunction);
+
+            if (!CopyInsertion.apply(tirFunction, pta)) {
+                break;
+            }
+        }
 
         // Do the statements first as some may create new locals.
         StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
@@ -134,11 +143,12 @@ public class Generator {
 
     private Stmt genMJCopyStmt(MJCopyStmt tirStmt) {
         String lhs = getSingleLhs(tirStmt);
-        StmtSequence seq = new StmtSequence();
-        String tmp = newTemp();
-        seq.addStmt(new StmtGet(tmp, lhs, new ExprString("mj_clone")));
-        seq.addStmt(new StmtCall(new Opt<>(new Identifier(lhs)), tmp, new List<>()));
-        return seq;
+        return new StmtMethod(
+            new Opt<>(new Identifier(lhs)),
+            "mj_clone",
+            new ExprId(lhs),
+            new List<>()
+            );
     }
 
     /**
@@ -284,8 +294,9 @@ public class Generator {
             String numElements = newTemp();
             String greaterThanEnd = newTemp();
             String outOfBounds = newTemp();
-            seq.addStmt(new StmtGet(numElementClosure, arrayName, new ExprString("mj_numel")));
-            seq.addStmt(new StmtCall(new Opt<>(new Identifier(numElements)), numElementClosure, new List<>()));
+            // seq.addStmt(new StmtGet(numElementClosure, arrayName, new ExprString("mj_numel")));
+            // seq.addStmt(new StmtCall(new Opt<>(new Identifier(numElements)), numElementClosure, new List<>()));
+            seq.addStmt(new StmtMethod(new Opt<>(new Identifier(numElements)), "mj_numel", new ExprId(arrayName), new List<>()));
             seq.addStmt(new StmtBinop(lessThanZero, Binop.Lt, new ExprId(linearizedIndex), new ExprInt(0)));
             seq.addStmt(new StmtBinop(greaterThanEnd, Binop.Ge, new ExprId(linearizedIndex), new ExprId(numElements)));
             seq.addStmt(new StmtBinop(outOfBounds, Binop.Or, new ExprId(lessThanZero), new ExprId(greaterThanEnd)));
@@ -331,8 +342,7 @@ public class Generator {
             String numElementClosure = newTemp();
             String numElements = newTemp();
             String greaterThanEnd = newTemp();
-            seq.addStmt(new StmtGet(numElementClosure, arrayName, new ExprString("mj_numel")));
-            seq.addStmt(new StmtCall(new Opt<>(new Identifier(numElements)), numElementClosure, new List<>()));
+            seq.addStmt(new StmtMethod(new Opt<>(new Identifier(numElements)), "mj_numel", new ExprId(arrayName), new List<>()));
             seq.addStmt(new StmtBinop(lessThanZero, Binop.Lt, new ExprId(linearizedIndex), new ExprInt(0)));
             seq.addStmt(new StmtIf(
                   lessThanZero,
@@ -446,15 +456,6 @@ public class Generator {
               testFunc,
               new List<>(loopVar, to)));
         seq.addStmt(new StmtWhile(new ExprId(testVar), body));
-        return seq;
-    }
-
-    private StmtSequence genCopyStmt(String var) {
-        StmtSequence seq = new StmtSequence();
-
-        String copyMethod = newTemp();
-        seq.addStmt(new StmtGet(copyMethod, var, new ExprString("mj_clone")));
-        seq.addStmt(new StmtCall(new Opt<>(new Identifier(var)), copyMethod, new List<Expr>()));
         return seq;
     }
 

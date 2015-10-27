@@ -204,6 +204,25 @@ aspect PrettyPrinter {
             );
     }
 
+    public PrettyBase StmtMethod.pp() {
+        PrettyBase[] ppArgs = new PrettyBase[this.getNumArgument()];
+        for (int i = 0; i < ppArgs.length; ++i) {
+            ppArgs[i] = this.getArgument(i).pp();
+        }
+        PrettyBase assignment =
+          this.hasLhs()
+          ? Pretty.concat(this.getLhs().pp(), Pretty.text(" = "))
+          : Pretty.EMPTY;
+        return Pretty.concat(
+            assignment,
+            this.getReceiver().pp(),
+            Pretty.text("."),
+            Pretty.text(this.getFunction()),
+            Pretty.parenthesized(Pretty.separateBy(Pretty.text(", "), ppArgs)),
+            Pretty.text(";")
+            );
+    }
+
     public PrettyBase StmtBreak.pp() {
         return Pretty.text("break;");
     }

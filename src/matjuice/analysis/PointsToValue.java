@@ -93,6 +93,20 @@ public class PointsToValue {
         return out;
     }
 
+    /**
+     * Verify if two PointsToValue may be aliases, i.e. they contain
+     * at least one common malloc site.
+     * Return the set of common malloc sites.
+     */
+    public Set<MallocSite> commonMallocSites(PointsToValue other) {
+        Set<MallocSite> commonMallocs = new HashSet<>();
+        for (MallocSite m: this.mallocs.keySet()) {
+            if (other.mallocs.containsKey(m))
+                commonMallocs.add(m);
+        }
+        return commonMallocs;
+    }
+
     @Override
     public String toString() {
         return String.format("PointsToValue(%s)", mallocs);
