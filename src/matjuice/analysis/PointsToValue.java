@@ -101,7 +101,7 @@ public class PointsToValue {
     public Set<MallocSite> commonMallocSites(PointsToValue other) {
         Set<MallocSite> commonMallocs = new HashSet<>();
         for (MallocSite m: this.mallocs.keySet()) {
-            if (other.mallocs.containsKey(m))
+            if (other.mallocs.containsKey(m) && !this.mallocs.get(m).isEmpty())
                 commonMallocs.add(m);
         }
         return commonMallocs;

@@ -135,16 +135,19 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
     public void caseMJCopyStmt(MJCopyStmt stmt) {
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
+
         String lhs = stmt.getVarName();
+
+        // Kill information for `lhs`
         currentOutSet.remove(lhs);
 
-
+        // Gen new information for `lhs`
         MallocSite m = MallocSite.newLocalSite();
         PointsToValue ptv = new PointsToValue();
         ptv.addMallocSite(m);
-        ptv.addAliasingStmt(m, stmt);
-
         currentOutSet.put(lhs, ptv);
+
+        // Put the new dataflow information in the outFlowSets
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 

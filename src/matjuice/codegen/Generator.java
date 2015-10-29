@@ -74,8 +74,6 @@ public class Generator {
         while (true) {
             PointsToAnalysis pta = new PointsToAnalysis(tirFunction, paramNames);
             tirFunction.tirAnalyze(pta);
-            pta.print(tirFunction);
-
             if (!CopyInsertion.apply(tirFunction, pta)) {
                 break;
             }
