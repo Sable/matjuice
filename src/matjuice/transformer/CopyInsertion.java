@@ -26,22 +26,26 @@ import natlab.tame.tir.analysis.*;
 import ast.*;
 
 import java.util.Set;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 
 public class CopyInsertion {
     public static boolean apply(TIRFunction func, PointsToAnalysis pta) {
-        CopyInserter ci = new CopyInserter(pta);
+        CopyInserter ci = new CopyInserter(func, pta);
         func.tirAnalyze(ci);
         return ci.addedCopy;
     }
 
     private static class CopyInserter extends TIRAbstractNodeCaseHandler {
         public boolean addedCopy = false;
+        private Set<String> outParams = new HashSet<>();
         private PointsToAnalysis pta;
 
-        public CopyInserter(PointsToAnalysis pta) {
+        public CopyInserter(TIRFunction tirFunction, PointsToAnalysis pta) {
             this.pta = pta;
+            for (Name outParamName: tirFunction.getOutputParams())
+                this.outParams.add(outParamName.getID());
         }
 
         @Override
@@ -59,36 +63,44 @@ public class CopyInsertion {
 
         @Override
         public void caseTIRArraySetStmt(TIRArraySetStmt setStmt) {
+            String arrayName = setStmt.getArrayName().getID();
+            insertCopy(arrayName, setStmt);
+        }
+
+        @Override
+        public void caseTIRReturnStmt(TIRReturnStmt retStmt) {
+            for (String outParam: outParams) {
+                insertCopy(outParam, retStmt);
+            }
+        }
+
+        private void insertCopy(String variable, TIRStmt stmt) {
             // Only add one copy per iteration.
             if (addedCopy) {
                 return;
             }
+            Map<String, PointsToValue> inSet = pta.getInFlowSets().get(stmt);
+            PointsToValue stmtPtv = inSet.get(variable);
 
-            String arrayName = setStmt.getArrayName().getID();
-            Map<String, PointsToValue> outSet = pta.getOutFlowSets().get(setStmt);
-            PointsToValue stmtPtv = outSet.get(arrayName);
-
-            // Iterate over the outset to find possible aliasing.
-            for (Entry<String, PointsToValue> entry: outSet.entrySet()) {
+            // Iterate over the inset to find possible aliasing.
+            for (Entry<String, PointsToValue> entry: inSet.entrySet()) {
                 String varName = entry.getKey();
                 PointsToValue ptv = entry.getValue();
 
                 // Don't compare against youself
-                if (arrayName.equals(varName))
+                if (variable.equals(varName))
                     continue;
 
                 Set<MallocSite> commonMallocs = stmtPtv.commonMallocSites(ptv);
-                if (!commonMallocs.isEmpty()) {
-                    for (MallocSite m: commonMallocs) {
-                        Set<TIRStmt> aliasingStmts = stmtPtv.getAliasingStmts(m);
-                        for (TIRStmt stmt: aliasingStmts) {
-                            Ast.addRightSibling((TIRCopyStmt) stmt, Ast.makeCopyStmt(arrayName));
-                        }
-
-                        // Early return
-                        addedCopy = true;
-                        return;
+                for (MallocSite m: commonMallocs) {
+                    Set<TIRCopyStmt> aliasingStmts = stmtPtv.getAliasingStmts(m);
+                    for (TIRCopyStmt copyStmt: aliasingStmts) {
+                        Ast.addRightSibling(copyStmt, Ast.makeCopyStmt(variable));
                     }
+
+                    // Early return
+                    addedCopy = true;
+                    return;
                 }
             }
         }

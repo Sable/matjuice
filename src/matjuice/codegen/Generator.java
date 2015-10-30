@@ -60,28 +60,17 @@ public class Generator {
      *   the end of the function
      */
     public Function genFunction(TIRFunction tirFunction) {
+        // Add an explicit return at the end of the function
+        addReturn(tirFunction);
+
         // Identify locals in order to add proper "var" declarations in JS.
         locals = LocalVars.apply(tirFunction);
 
-        // Identify the parameters that need to be copied.
-        Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(tirFunction);
-        ParameterCopyTransformer.apply(tirFunction, writtenParams);
-
-        Set<String> paramNames = new HashSet<>();
-        for (ast.Name param : tirFunction.getInputParamList())
-            paramNames.add(param.getID());
-
-        while (true) {
-            PointsToAnalysis pta = new PointsToAnalysis(tirFunction, paramNames);
-            tirFunction.tirAnalyze(pta);
-            if (!CopyInsertion.apply(tirFunction, pta)) {
-                break;
-            }
-        }
+        // Do copy insertion
+        performCopyInsertion(tirFunction);
 
         // Do the statements first as some may create new locals.
         StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
-        jsStmts.addStmt(createReturnStmt(tirFunction));
 
         List<Identifier> jsArgs = new List<>();
         for (ast.Name argName : tirFunction.getInputParamList()) {
@@ -94,6 +83,37 @@ public class Generator {
         }
 
         return new Function(tirFunction.getName().getID(), jsArgs, jsLocals, jsStmts);
+    }
+
+    private static void addReturn(TIRFunction tirFunction) {
+        TIRStatementList stmts = tirFunction.getStmtList();
+        TIRStmt ret = new TIRReturnStmt();
+        stmts.add(ret);
+        tirFunction.setStmtList(stmts);
+    }
+
+    private static void performCopyInsertion(TIRFunction tirFunction) {
+        // Identify the input parameters that need to be copied
+        // and insert the appropriate MJCopyStmt nodes in tirFunction.
+        Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(tirFunction);
+        ParameterCopyTransformer.apply(tirFunction, writtenParams);
+
+        // Get the set of input parameter names.
+        Set<String> paramNames = new HashSet<>();
+        for (ast.Name param : tirFunction.getInputParamList())
+            paramNames.add(param.getID());
+
+        // Insert copy statements to prevent aliasing.
+        // 1. perform the points-to analysis
+        // 2. insert MJCopyStmt nodes for one aliased variable
+        // 3. re-run analysis and transformation
+        // 4. iterate until fixed point
+        PointsToAnalysis pta;
+        do {
+            pta = new PointsToAnalysis(tirFunction, paramNames);
+            tirFunction.tirAnalyze(pta);
+            pta.print(tirFunction);
+        } while (CopyInsertion.apply(tirFunction, pta));
     }
 
     /**

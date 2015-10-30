@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Collections;
 
-import natlab.tame.tir.TIRStmt;
+import natlab.tame.tir.*;
 
 
 /**
@@ -17,7 +17,7 @@ import natlab.tame.tir.TIRStmt;
  * site between multiple identifiers.
  */
 public class PointsToValue {
-    private Map<MallocSite, Set<TIRStmt>> mallocs = new HashMap<>();
+    private Map<MallocSite, Set<TIRCopyStmt>> mallocs = new HashMap<>();
 
     /**
      * Add a mapping between m and an empty set.
@@ -41,8 +41,8 @@ public class PointsToValue {
      * Add a statement to the set of statements that cause
      * aliasing of `m` to happen.
      */
-    public void addAliasingStmt(MallocSite m, TIRStmt s) {
-        Set<TIRStmt> stmts = mallocs.getOrDefault(m, new HashSet<>());
+    public void addAliasingStmt(MallocSite m, TIRCopyStmt s) {
+        Set<TIRCopyStmt> stmts = mallocs.getOrDefault(m, new HashSet<>());
         stmts.add(s);
         mallocs.put(m, stmts);
     }
@@ -50,7 +50,7 @@ public class PointsToValue {
     /**
      * Return the aliasing statements of a given malloc site.
      */
-    public Set<TIRStmt> getAliasingStmts(MallocSite m) {
+    public Set<TIRCopyStmt> getAliasingStmts(MallocSite m) {
         return mallocs.getOrDefault(m, new HashSet<>());
     }
 
@@ -65,13 +65,13 @@ public class PointsToValue {
 
         for (MallocSite m: this.mallocs.keySet()) {
             out.addMallocSite(m);
-            for (TIRStmt stmt: this.getAliasingStmts(m))
+            for (TIRCopyStmt stmt: this.getAliasingStmts(m))
                 out.addAliasingStmt(m, stmt);
         }
 
         for (MallocSite m: other.mallocs.keySet()) {
             out.addMallocSite(m);
-            for (TIRStmt stmt: other.getAliasingStmts(m))
+            for (TIRCopyStmt stmt: other.getAliasingStmts(m))
                 out.addAliasingStmt(m, stmt);
         }
 
@@ -84,9 +84,9 @@ public class PointsToValue {
     public PointsToValue copy() {
         PointsToValue out = new PointsToValue();
 
-        for (Entry<MallocSite, Set<TIRStmt>> entry: this.mallocs.entrySet()) {
+        for (Entry<MallocSite, Set<TIRCopyStmt>> entry: this.mallocs.entrySet()) {
             MallocSite m = entry.getKey();
-            Set<TIRStmt> stmts = entry.getValue();
+            Set<TIRCopyStmt> stmts = entry.getValue();
             out.mallocs.put(m, new HashSet<>(stmts));
         }
 
