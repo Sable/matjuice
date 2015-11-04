@@ -1,28 +1,28 @@
 package matjuice.analysis;
 
 public class MallocSite {
-    private boolean isGlobal = false;
+    private boolean isExternal = false;
 
     public static MallocSite newLocalSite() {
         return new MallocSite(false);
     }
 
-    public static MallocSite newGlobalSite() {
+    public static MallocSite newExternalSite() {
         return new MallocSite(true);
     }
 
-    private MallocSite(boolean isGlobal) {
-        this.isGlobal = isGlobal;
+    private MallocSite(boolean isExternal) {
+        this.isExternal = isExternal;
     }
 
-    public boolean isGlobal() {
-        return isGlobal;
+    public boolean isExternal() {
+        return isExternal;
     }
 
     @Override
     public String toString() {
-        if (isGlobal)
-            return String.format("GlobalMalloc(%x)", hashCode());
+        if (isExternal)
+            return String.format("ExternalMalloc(%x)", hashCode());
         else
             return String.format("LocalMalloc(%x)", hashCode());
     }

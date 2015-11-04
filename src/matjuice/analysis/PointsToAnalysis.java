@@ -22,12 +22,12 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
     public PointsToAnalysis(ASTNode<?> astNode, Set<String> paramNames) {
         super(astNode);
         initialMap = new HashMap<>();
-        MallocSite globalSite = MallocSite.newGlobalSite();
+        MallocSite externalSite = MallocSite.newExternalSite();
 
-        // Input parameters point into a common global malloc site.
+        // Input parameters point into a common external malloc site.
         for (String param: paramNames) {
             PointsToValue ptv = new PointsToValue();
-            ptv.addMallocSite(globalSite);
+            ptv.addMallocSite(externalSite);
             initialMap.put(param, ptv);
         }
     }
