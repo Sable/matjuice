@@ -1,6 +1,7 @@
 package matjuice.analysis;
 
 import matjuice.transformer.MJCopyStmt;
+import matjuice.utils.Pair;
 
 import analysis.ForwardAnalysis;
 import ast.ASTNode;
@@ -18,10 +19,12 @@ import java.util.Collections;
 
 public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis<Map<String, PointsToValue>> {
     private Map<String, PointsToValue> initialMap;
+    private Map<Pair<TIRStmt, String>, MallocSite> statementMallocs;
 
     public PointsToAnalysis(ASTNode<?> astNode, Set<String> paramNames) {
         super(astNode);
         initialMap = new HashMap<>();
+        statementMallocs = new HashMap<>();
         MallocSite externalSite = MallocSite.newExternalSite();
 
         // Input parameters point into a common external malloc site.
@@ -29,6 +32,23 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
             PointsToValue ptv = new PointsToValue();
             ptv.addMallocSite(externalSite);
             initialMap.put(param, ptv);
+        }
+    }
+
+    /**
+     * Create a new memory site for the pair <stmt, varname> if one
+     * doesn't exist and memoize it, otherwise return the previously
+     * created memory site.
+     */
+    private MallocSite mallocSiteForStmt(TIRStmt stmt, String varname) {
+        Pair<TIRStmt, String> p = new Pair<>(stmt, varname);
+        if (statementMallocs.containsKey(p)) {
+            return statementMallocs.get(p);
+        }
+        else {
+            MallocSite m = MallocSite.newLocalSite();
+            statementMallocs.put(p, m);
+            return m;
         }
     }
 
@@ -54,7 +74,6 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
 
             out.put(varName, ptv.merge(out.getOrDefault(varName, new PointsToValue())));
         }
-
         return out;
     }
 
@@ -97,7 +116,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         // Insert new malloc sites
         for (String varname : stmt.getLValues()) {
             PointsToValue ptv = new PointsToValue();
-            ptv.addMallocSite(MallocSite.newLocalSite());
+            ptv.addMallocSite(mallocSiteForStmt(stmt, varname));
             currentOutSet.put(varname, ptv);
         }
 
@@ -142,7 +161,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         currentOutSet.remove(lhs);
 
         // Gen new information for `lhs`
-        MallocSite m = MallocSite.newLocalSite();
+        MallocSite m = mallocSiteForStmt(stmt, lhs);
         PointsToValue ptv = new PointsToValue();
         ptv.addMallocSite(m);
         currentOutSet.put(lhs, ptv);

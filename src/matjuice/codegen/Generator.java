@@ -110,6 +110,7 @@ public class Generator {
         // 4. iterate until fixed point
         PointsToAnalysis pta;
         do {
+            System.err.printf("VFB: %s\n", tirFunction.getName().getID());
             pta = new PointsToAnalysis(tirFunction, paramNames);
             tirFunction.tirAnalyze(pta);
             pta.print(tirFunction);

@@ -120,4 +120,8 @@ public class PointsToValue {
         return other instanceof PointsToValue &&
           this.mallocs.equals(((PointsToValue) other).mallocs);
     }
+
+    @Override public int hashCode() {
+        return this.mallocs.hashCode();
+    }
 }
