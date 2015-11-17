@@ -130,6 +130,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 
+    // TODO(vfoley): A = A
     @Override
     public void caseTIRCopyStmt(TIRCopyStmt stmt) {
         if (stmt instanceof MJCopyStmt) {
@@ -148,6 +149,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
 
         // Add the current statement for RHS
         PointsToValue rhsPtv = currentOutSet.get(rhs);
+        System.out.println("VFB: " + initialMap);
         for (MallocSite m: rhsPtv.getMallocSites()) {
             rhsPtv.addAliasingStmt(m, stmt);
         }
@@ -163,6 +165,23 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         currentOutSet = copy(currentInSet);
 
         String lhs = stmt.getVarName();
+
+        PointsToValue lhsPtv = currentOutSet.get(lhs);
+        Set<TIRCopyStmt> lhsAliasingStmts = lhsPtv.getAllAliasingStmts();
+
+        // Kill the aliasing stmts that lhs was involved in from
+        // the other variables in the outSet.
+        for (String otherVar: currentOutSet.keySet()) {
+            if (otherVar.equals(lhs))
+                continue;
+
+            PointsToValue otherPtv = currentOutSet.get(otherVar);
+            for (MallocSite m: otherPtv.getMallocSites()) {
+                for (TIRCopyStmt aliasingStmt: lhsAliasingStmts) {
+                    otherPtv.removeAliasingStmt(m, aliasingStmt);
+                }
+            }
+        }
 
         // Kill information for `lhs`
         currentOutSet.remove(lhs);

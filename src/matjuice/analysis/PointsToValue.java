@@ -48,10 +48,33 @@ public class PointsToValue {
     }
 
     /**
+     * Remove a statement from the set of statements that cause
+     * aliasing of `m` to happen.
+     */
+    public void removeAliasingStmt(MallocSite m, TIRCopyStmt s) {
+        Set<TIRCopyStmt> stmts = mallocs.get(m);
+        if (stmts == null)
+            return;
+        stmts.remove(s);
+        mallocs.put(m, stmts);
+    }
+
+    /**
      * Return the aliasing statements of a given malloc site.
      */
     public Set<TIRCopyStmt> getAliasingStmts(MallocSite m) {
-        return Collections.unmodifiableSet(mallocs.getOrDefault(m, new HashSet<>()));
+        return mallocs.getOrDefault(m, new HashSet<>());
+    }
+
+    /**
+     * Return the aliasing statements for all malloc sites.
+     */
+    public Set<TIRCopyStmt> getAllAliasingStmts() {
+        Set<TIRCopyStmt> allAliasingStmts = new HashSet<>();
+        for (MallocSite m: this.getMallocSites()) {
+            allAliasingStmts.addAll(this.getAliasingStmts(m));
+        }
+        return allAliasingStmts;
     }
 
     /**
