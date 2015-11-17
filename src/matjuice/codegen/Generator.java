@@ -98,11 +98,6 @@ public class Generator {
         Map<TIRStatementList, Set<String>> writtenParams = ParameterCopyAnalysis.apply(tirFunction);
         ParameterCopyTransformer.apply(tirFunction, writtenParams);
 
-        // Get the set of input parameter names.
-        Set<String> paramNames = new HashSet<>();
-        for (ast.Name param : tirFunction.getInputParamList())
-            paramNames.add(param.getID());
-
         // Insert copy statements to prevent aliasing.
         // 1. perform the points-to analysis
         // 2. insert MJCopyStmt nodes for one aliased variable
@@ -111,7 +106,7 @@ public class Generator {
         PointsToAnalysis pta;
         do {
             System.err.printf("VFB: %s\n", tirFunction.getName().getID());
-            pta = new PointsToAnalysis(tirFunction, paramNames);
+            pta = new PointsToAnalysis(tirFunction);
             tirFunction.tirAnalyze(pta);
             //pta.print(tirFunction);
         } while (CopyInsertion.apply(tirFunction, pta));

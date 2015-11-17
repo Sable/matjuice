@@ -4,7 +4,6 @@ import matjuice.transformer.MJCopyStmt;
 import matjuice.utils.Pair;
 
 import analysis.ForwardAnalysis;
-import ast.ASTNode;
 import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.TIRAbstractNodeCaseHandler;
 import natlab.tame.tir.analysis.TIRAbstractSimpleStructuralForwardAnalysis;
@@ -21,17 +20,25 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
     private Map<String, PointsToValue> initialMap;
     private Map<Pair<TIRStmt, String>, MallocSite> statementMallocs;
 
-    public PointsToAnalysis(ASTNode<?> astNode, Set<String> paramNames) {
-        super(astNode);
+    public PointsToAnalysis(TIRFunction tirFunction) {
+        super(tirFunction);
         initialMap = new HashMap<>();
         statementMallocs = new HashMap<>();
         MallocSite externalSite = MallocSite.newExternalSite();
 
         // Input parameters point into a common external malloc site.
-        for (String param: paramNames) {
+        for (ast.Name param : tirFunction.getInputParamList()) {
+            String paramName = param.getID();
             PointsToValue ptv = new PointsToValue();
             ptv.addMallocSite(externalSite);
-            initialMap.put(param, ptv);
+            initialMap.put(paramName, ptv);
+        }
+
+        // Output parameters start with empty PointsToValue.
+        for (ast.Name param : tirFunction.getOutputParamList()) {
+            String paramName = param.getID();
+            PointsToValue ptv = new PointsToValue();
+            initialMap.put(paramName, ptv);
         }
     }
 
@@ -181,7 +188,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
     public void print(ast.ASTNode node) {
         class Printer extends TIRAbstractNodeCaseHandler {
             @Override
-            public void caseASTNode(ASTNode astNode) {
+            public void caseASTNode(ast.ASTNode astNode) {
                 for (int i = 0; i < astNode.getNumChild(); ++i) {
                     astNode.getChild(i).analyze(this);
                 }
