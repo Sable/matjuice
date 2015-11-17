@@ -34,7 +34,7 @@ public class PointsToValue {
      * Return all the malloc sites.
      */
     public Set<MallocSite> getMallocSites() {
-        return mallocs.keySet();
+        return Collections.unmodifiableSet(mallocs.keySet());
     }
 
     /**
@@ -51,7 +51,7 @@ public class PointsToValue {
      * Return the aliasing statements of a given malloc site.
      */
     public Set<TIRCopyStmt> getAliasingStmts(MallocSite m) {
-        return mallocs.getOrDefault(m, new HashSet<>());
+        return Collections.unmodifiableSet(mallocs.getOrDefault(m, new HashSet<>()));
     }
 
     /**

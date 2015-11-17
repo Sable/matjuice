@@ -25,10 +25,15 @@ import natlab.tame.tir.*;
 import natlab.tame.tir.analysis.*;
 import ast.*;
 
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
+
 
 public class CopyInsertion {
     public static boolean apply(TIRFunction func, PointsToAnalysis pta) {
@@ -39,7 +44,7 @@ public class CopyInsertion {
 
     private static class CopyInserter extends TIRAbstractNodeCaseHandler {
         public boolean addedCopy = false;
-        private Set<String> outParams = new HashSet<>();
+        private List<String> outParams = new ArrayList<>();
         private PointsToAnalysis pta;
 
         public CopyInserter(TIRFunction tirFunction, PointsToAnalysis pta) {
@@ -63,14 +68,74 @@ public class CopyInsertion {
 
         @Override
         public void caseTIRArraySetStmt(TIRArraySetStmt setStmt) {
+            // Only "un-alias" one variable per transformation.
+            if (addedCopy)
+                return;
+
+            Map<String, PointsToValue> inSet = pta.getInFlowSets().get(setStmt);
             String arrayName = setStmt.getArrayName().getID();
-            insertCopy(arrayName, setStmt);
+            PointsToValue ptv1 = inSet.get(arrayName);
+
+            for (String otherVar: inSet.keySet()) {
+                if (otherVar.equals(arrayName))
+                    continue;
+
+                PointsToValue ptv2 = inSet.get(otherVar);
+                Set<MallocSite> common = ptv1.commonMallocSites(ptv2);
+                for (MallocSite m: common) {
+                    for (TIRCopyStmt aliasingStmt: ptv1.getAliasingStmts(m)) {
+                        Ast.addRightSibling(aliasingStmt, Ast.makeCopyStmt(arrayName));
+                    }
+                    addedCopy = true;
+                    return;
+                }
+            }
         }
 
         @Override
         public void caseTIRReturnStmt(TIRReturnStmt retStmt) {
-            for (String outParam: outParams) {
-                insertCopy(outParam, retStmt);
+            // Only "un-alias" one variable per transformation.
+            if (addedCopy)
+                return;
+
+            Map<String, PointsToValue> inSet = pta.getInFlowSets().get(retStmt);
+
+            // Add copies for output parameters that may point to
+            // externally allocated memory.
+            for (String outParam: this.outParams) {
+                PointsToValue ptv = inSet.get(outParam);
+
+                Set<MallocSite> externalAliases = ptv
+                  .getMallocSites()
+                  .stream()
+                  .filter(m -> m.isExternal())
+                  .collect(Collectors.toCollection(HashSet::new));
+                if (!externalAliases.isEmpty()) {
+                    for (MallocSite m: externalAliases) {
+                        for (TIRCopyStmt aliasingStmt: ptv.getAliasingStmts(m)) {
+                            Ast.addRightSibling(aliasingStmt, Ast.makeCopyStmt(outParam));
+                        }
+                        addedCopy = true;
+                        return;
+                    }
+                }
+            }
+
+            // Add copies for output parameters that may point to
+            // memory sites of other output parameters.
+            for (int i = 0; i < outParams.size(); ++i) {
+                for (int j = i+1; j < outParams.size(); ++j) {
+                    PointsToValue ptv1 = inSet.get(outParams.get(i));
+                    PointsToValue ptv2 = inSet.get(outParams.get(j));
+                    Set<MallocSite> common = ptv1.commonMallocSites(ptv2);
+                    for (MallocSite m: common) {
+                        for (TIRCopyStmt aliasingStmt: ptv1.getAliasingStmts(m)) {
+                            Ast.addRightSibling(aliasingStmt, Ast.makeCopyStmt(outParams.get(i)));
+                        }
+                        addedCopy = true;
+                        return;
+                    }
+                }
             }
         }
 

@@ -113,7 +113,7 @@ public class Generator {
             System.err.printf("VFB: %s\n", tirFunction.getName().getID());
             pta = new PointsToAnalysis(tirFunction, paramNames);
             tirFunction.tirAnalyze(pta);
-            pta.print(tirFunction);
+            //pta.print(tirFunction);
         } while (CopyInsertion.apply(tirFunction, pta));
     }
 
