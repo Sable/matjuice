@@ -110,6 +110,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         caseASTNode(tirFunction);
     }
 
+    // TODO(vfoley): kill aliasing stmts from other variables
     @Override
     public void caseTIRCallStmt(TIRCallStmt stmt) {
         inFlowSets.put(stmt, copy(currentInSet));
@@ -117,6 +118,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
 
         // Kill the current points-to values for all output parameters.
         for (String varname : stmt.getLValues()) {
+            this.removeAllAliasingStmtsInvolving(varname);
             currentOutSet.remove(varname);
         }
 
@@ -149,7 +151,6 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
 
         // Add the current statement for RHS
         PointsToValue rhsPtv = currentOutSet.get(rhs);
-        System.out.println("VFB: " + initialMap);
         for (MallocSite m: rhsPtv.getMallocSites()) {
             rhsPtv.addAliasingStmt(m, stmt);
         }
@@ -160,17 +161,11 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 
-    public void caseMJCopyStmt(MJCopyStmt stmt) {
-        inFlowSets.put(stmt, copy(currentInSet));
-        currentOutSet = copy(currentInSet);
-
-        String lhs = stmt.getVarName();
-
-        PointsToValue lhsPtv = currentOutSet.get(lhs);
-        Set<TIRCopyStmt> lhsAliasingStmts = lhsPtv.getAllAliasingStmts();
-
+    public void removeAllAliasingStmtsInvolving(String lhs) {
         // Kill the aliasing stmts that lhs was involved in from
         // the other variables in the outSet.
+        PointsToValue lhsPtv = currentOutSet.get(lhs);
+        Set<TIRCopyStmt> lhsAliasingStmts = lhsPtv.getAllAliasingStmts();
         for (String otherVar: currentOutSet.keySet()) {
             if (otherVar.equals(lhs))
                 continue;
@@ -182,6 +177,15 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
                 }
             }
         }
+    }
+
+    public void caseMJCopyStmt(MJCopyStmt stmt) {
+        inFlowSets.put(stmt, copy(currentInSet));
+        currentOutSet = copy(currentInSet);
+
+        String lhs = stmt.getVarName();
+
+        this.removeAllAliasingStmtsInvolving(lhs);
 
         // Kill information for `lhs`
         currentOutSet.remove(lhs);
