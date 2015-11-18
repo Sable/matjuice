@@ -146,6 +146,9 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         String lhs = stmt.getVarName();
         String rhs = stmt.getSourceName().getID();
 
+        if (lhs.equals(rhs))
+            return;
+
         // Kill current information for LHS
         currentOutSet.remove(lhs);
 
