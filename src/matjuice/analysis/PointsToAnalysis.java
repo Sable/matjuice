@@ -34,7 +34,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
             initialMap.put(paramName, ptv);
         }
 
-        // Output parameters start with empty PointsToValue.
+        // Output parameters start with an empty PointsToValue.
         for (ast.Name param : tirFunction.getOutputParamList()) {
             String paramName = param.getID();
             PointsToValue ptv = new PointsToValue();
@@ -110,7 +110,6 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         caseASTNode(tirFunction);
     }
 
-    // TODO(vfoley): kill aliasing stmts from other variables
     @Override
     public void caseTIRCallStmt(TIRCallStmt stmt) {
         inFlowSets.put(stmt, copy(currentInSet));
@@ -132,7 +131,6 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 
-    // TODO(vfoley): A = A
     @Override
     public void caseTIRCopyStmt(TIRCopyStmt stmt) {
         if (stmt instanceof MJCopyStmt) {
@@ -167,7 +165,8 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
     public void removeAllAliasingStmtsInvolving(String lhs) {
         // Kill the aliasing stmts that lhs was involved in from
         // the other variables in the outSet.
-        PointsToValue lhsPtv = currentOutSet.get(lhs);
+        System.out.printf("VFB: [%s] %s\n", lhs, currentOutSet);
+        PointsToValue lhsPtv = currentOutSet.getOrDefault(lhs, new PointsToValue());
         Set<TIRCopyStmt> lhsAliasingStmts = lhsPtv.getAllAliasingStmts();
         for (String otherVar: currentOutSet.keySet()) {
             if (otherVar.equals(lhs))

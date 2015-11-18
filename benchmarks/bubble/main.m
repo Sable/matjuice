@@ -1,13 +1,13 @@
 function main(size)
   A = rand(1, size);
+  tic();
   y = bubble(A);
+  t = toc();
 
-  ok = 1;
-  for i = 1:size-1
-    if y(i) > y(i+1)
-      ok = 0;
-      break;
-    end
+  disp('OUT');
+  for i = 1:size
+      disp(y(i));
   end
-  disp(ok);
+  disp('TIME');
+  disp(t);
 end

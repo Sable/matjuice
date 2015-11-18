@@ -847,11 +847,11 @@ function mc_min(a, b) {
 
 
 function mc_tic() {
-    MC_TICTOC = performance.now();
+    MC_TICTOC = Date.now();
 }
 
 function mc_toc() {
-    var elapsed = performance.now() - MC_TICTOC;
+    var elapsed = Date.now() - MC_TICTOC;
     return elapsed / 1000;
 }
 
