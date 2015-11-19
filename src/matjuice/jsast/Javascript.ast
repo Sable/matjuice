@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
-Program ::= Function:Function*;
-Function ::= <FunctionName:String> Param:Identifier* Decl:Identifier* Stmts:StmtSequence;
+Program    ::= Function:Function*;
+Function   ::= <FunctionName:String> Param:Identifier* Decl:Identifier* Stmts:StmtSequence;
 Identifier ::= <Id:String>;
 
 
@@ -27,8 +27,11 @@ StmtUnop:Stmt     ::= <Lhs:String> <Op:matjuice.jsast.Unop> Rhs:Expr;           
 StmtBinop:Stmt    ::= <Lhs:String> <Op:matjuice.jsast.Binop> Rhs1:Expr Rhs2:Expr;       // lhs = rhs1 op rhs2;
 StmtCall:Stmt     ::= [Lhs:Identifier] <Function:String> Argument:Expr*;                // lhs = function(arg1, arg2, ..., argk);
 StmtMethod:Stmt   ::= [Lhs:Identifier] <Function:String> Receiver:Expr Argument:Expr*;  // lhs = receiver.method(arg1, arg2, ..., argk);
-StmtIf:Stmt       ::= <Condition:String> ThenStmts:StmtSequence ElseStmts:StmtSequence; // if (condition) { thenStmt } else { elseStmt }
-StmtWhile:Stmt    ::= Condition:Expr BodyStmts:StmtSequence;                            // while (condition) { bodyStmt }
+StmtIf:Stmt       ::= <Condition:String> ThenStmts:StmtSequence ElseStmts:StmtSequence; // if (condition) { thenStmts } else { elseStmts }
+StmtWhile:Stmt    ::= Condition:Expr BodyStmts:StmtSequence;                            // while (condition) { bodyStmts }
+StmtFor:Stmt      ::= <Var:String> Start:Expr End:Expr Step:Expr
+                      <ComparisonOp:matjuice.jsast.Binop> <UpdateOp:matjuice.jsast.Binop>
+                      BodyStmts:StmtSequence;                                           // for (Var=Start; Var Comparison End; Var = Var UpdateOp Step) {...}
 StmtReturn:Stmt   ::= Return:Identifier*;                                               // return [ret1, ret2, ..., retk]
 StmtBreak:Stmt;                                                                         // break;
 StmtContinue:Stmt;                                                                      // continue;

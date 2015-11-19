@@ -158,6 +158,33 @@ aspect PrettyPrinter {
             );
     }
 
+    public PrettyBase StmtFor.pp() {
+        PrettyBase ppBody = this.getBodyStmts().pp();
+        return Pretty.concat(
+            Pretty.text("for"),
+            Pretty.SPACE,
+            Pretty.parenthesized(
+                Pretty.concat(
+                    Pretty.text(this.getVar()),
+                    Pretty.text(" = "),
+                    this.getStart().pp(),
+                    Pretty.text("; "),
+                    Pretty.text(this.getVar()),
+                    this.getComparisonOp().pp(),
+                    this.getEnd().pp(),
+                    Pretty.text("; "),
+                    Pretty.text(this.getVar()),
+                    Pretty.text(" = "),
+                    Pretty.text(this.getVar()),
+                    this.getUpdateOp().pp(),
+                    this.getStep().pp()
+                    )
+                ),
+            Pretty.SPACE,
+            Pretty.block(ppBody)
+            );
+    }
+
     public PrettyBase StmtReturn.pp() {
         switch (this.getNumReturn()) {
         case 0:

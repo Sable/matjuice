@@ -70,11 +70,9 @@ def main():
 
     for b in benchmarks:
         mj_result, mj_time = run_matjuice(*b)
-        print mj_time
         js_result, js_time = run_javascript(*b)
-        print js_time
         matlab_results, matlab_time = run_matlab(*b)
-        print matlab_time
+        print "%s, %f, %f, %f" % (b[0], mj_time, js_time, matlab_time)
 
 
 # def main():

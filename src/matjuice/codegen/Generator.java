@@ -411,23 +411,18 @@ public class Generator {
      */
     private Stmt genStaticForStmt(TIRForStmt tirStmt, LoopDirection direction) {
         Binop cmpOp = (direction == LoopDirection.Ascending) ? Binop.Le : Binop.Ge;
-
         String iterVar = tirStmt.getLoopVarName().getID();
-        String cmpVar = newTemp();
-
         Expr incr = tirStmt.hasIncr() ? new ExprId(tirStmt.getIncName().getID()) : new ExprInt(1);
-
         StmtSequence body = genStmtList(tirStmt.getStatements());
-        body.addStmt(new StmtBinop(iterVar, Binop.Add, new ExprId(iterVar), incr));
-        body.addStmt(new StmtBinop(cmpVar, cmpOp, new ExprId(iterVar), new ExprId(tirStmt.getUpperName().getID())));
-        StmtWhile whileLoop = new StmtWhile(new ExprId(cmpVar), body);
 
-        return new StmtSequence(
-            new List<Stmt>(
-                new StmtAssign(iterVar, new ExprId(tirStmt.getLowerName().getID())),
-                new StmtBinop(cmpVar, cmpOp, new ExprId(iterVar), new ExprId(tirStmt.getUpperName().getID())),
-                whileLoop
-                )
+        return new StmtFor(
+            iterVar,
+            new ExprId(tirStmt.getLowerName().getID()),
+            new ExprId(tirStmt.getUpperName().getID()),
+            incr,
+            cmpOp,
+            Binop.Add,
+            body
             );
     }
 
