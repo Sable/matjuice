@@ -48,8 +48,24 @@ public class PointsToMap {
         return this.get(var).getMallocSites();
     }
 
+    /**
+     * Get the aliasing statements of a variable `var` for a given
+     * malloc site `m`.
+     */
     public Set<TIRCopyStmt> getAliasingStmts(String var, MallocSite m) {
         return this.get(var).getAliasingStmts(m);
+    }
+
+    /**
+     * Get the aliasing statements of a variable `var` for all its
+     * malloc sites.
+     */
+    public Set<TIRCopyStmt> getAllAliasingStmts(String var) {
+        Set<TIRCopyStmt> aliasingStmts = new HashSet<>();
+        for (MallocSite m: this.getMallocSites(var)) {
+            aliasingStmts.addAll(this.getAliasingStmts(var, m));
+        }
+        return aliasingStmts;
     }
 
     public void removeAliasingStmt(String var, TIRCopyStmt aliasingStmt) {
@@ -65,6 +81,17 @@ public class PointsToMap {
             }
         }
         this.put(var, newPtv);
+    }
+
+    public void removeAliasingStmts(Set<TIRCopyStmt> aliasingStmts) {
+        for (String var: this.keySet()) {
+            PointsToValue ptv = this.get(var);
+            for (MallocSite m: ptv.getMallocSites()) {
+                for (TIRCopyStmt stmt: aliasingStmts) {
+                    ptv.removeAliasingStmt(m, stmt);
+                }
+            }
+        }
     }
 
     public PointsToMap merge(PointsToMap other) {

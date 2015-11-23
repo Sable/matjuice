@@ -101,17 +101,13 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
 
-        // Kill the current points-to values for all output parameters.
         for (String varname : stmt.getLValues()) {
-            this.removeAllAliasingStmtsInvolving(varname);
+            Set<TIRCopyStmt> aliasingStmts = currentOutSet.getAllAliasingStmts(varname);
+            currentOutSet.removeAliasingStmts(aliasingStmts);
             currentOutSet.remove(varname);
-        }
 
-        // Insert new malloc sites
-        for (String varname : stmt.getLValues()) {
-            PointsToValue ptv = new PointsToValue();
-            ptv.addMallocSite(mallocSiteForStmt(stmt, varname));
-            currentOutSet.put(varname, ptv);
+            currentOutSet.addVariable(varname);
+            currentOutSet.addMallocSite(varname, mallocSiteForStmt(stmt, varname));
         }
 
         outFlowSets.put(stmt, copy(currentOutSet));
@@ -136,10 +132,9 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         // Kill current information for LHS
         currentOutSet.remove(lhs);
 
-        // Add the current statement for RHS
-        PointsToValue rhsPtv = currentOutSet.get(rhs);
-        for (MallocSite m: rhsPtv.getMallocSites()) {
-            rhsPtv.addAliasingStmt(m, stmt);
+        // Add the current statement as aliasing statement of RHS.
+        for (MallocSite m: currentOutSet.getMallocSites(rhs)) {
+            currentOutSet.addAliasingStmt(rhs, m, stmt);
         }
 
         // Copy information from RHS into LHS
@@ -148,41 +143,22 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 
-    public void removeAllAliasingStmtsInvolving(String lhs) {
-        // Kill the aliasing stmts that lhs was involved in from
-        // the other variables in the outSet.
-        System.out.printf("VFB: [%s] %s\n", lhs, currentOutSet);
-        PointsToValue lhsPtv = currentOutSet.get(lhs);
-        Set<TIRCopyStmt> lhsAliasingStmts = lhsPtv.getAllAliasingStmts();
-        for (String otherVar: currentOutSet.keySet()) {
-            if (otherVar.equals(lhs))
-                continue;
-
-            PointsToValue otherPtv = currentOutSet.get(otherVar);
-            for (MallocSite m: otherPtv.getMallocSites()) {
-                for (TIRCopyStmt aliasingStmt: lhsAliasingStmts) {
-                    otherPtv.removeAliasingStmt(m, aliasingStmt);
-                }
-            }
-        }
-    }
-
     public void caseMJCopyStmt(MJCopyStmt stmt) {
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
 
         String lhs = stmt.getVarName();
 
-        this.removeAllAliasingStmtsInvolving(lhs);
+        Set<TIRCopyStmt> aliasingStmtsOfLhs = currentOutSet.getAllAliasingStmts(lhs);
+        currentOutSet.removeAliasingStmts(aliasingStmtsOfLhs);
 
         // Kill information for `lhs`
         currentOutSet.remove(lhs);
 
         // Gen new information for `lhs`
         MallocSite m = mallocSiteForStmt(stmt, lhs);
-        PointsToValue ptv = new PointsToValue();
-        ptv.addMallocSite(m);
-        currentOutSet.put(lhs, ptv);
+        currentOutSet.addVariable(lhs);
+        currentOutSet.addMallocSite(lhs, m);
 
         // Put the new dataflow information in the outFlowSets
         outFlowSets.put(stmt, copy(currentOutSet));
