@@ -17,6 +17,7 @@
 package matjuice.transformer;
 
 import matjuice.analysis.PointsToAnalysis;
+import matjuice.analysis.PointsToMap;
 import matjuice.analysis.PointsToValue;
 import matjuice.analysis.MallocSite;
 import matjuice.utils.Ast;
@@ -72,7 +73,7 @@ public class CopyInsertion {
             if (addedCopy)
                 return;
 
-            Map<String, PointsToValue> inSet = pta.getInFlowSets().get(setStmt);
+            PointsToMap inSet = pta.getInFlowSets().get(setStmt);
             String arrayName = setStmt.getArrayName().getID();
             PointsToValue ptv1 = inSet.get(arrayName);
 
@@ -98,7 +99,7 @@ public class CopyInsertion {
             if (addedCopy)
                 return;
 
-            Map<String, PointsToValue> inSet = pta.getInFlowSets().get(retStmt);
+            PointsToMap inSet = pta.getInFlowSets().get(retStmt);
 
             // Add copies for output parameters that may point to
             // externally allocated memory.
@@ -144,13 +145,12 @@ public class CopyInsertion {
             if (addedCopy) {
                 return;
             }
-            Map<String, PointsToValue> inSet = pta.getInFlowSets().get(stmt);
+            PointsToMap inSet = pta.getInFlowSets().get(stmt);
             PointsToValue stmtPtv = inSet.get(variable);
 
             // Iterate over the inset to find possible aliasing.
-            for (Entry<String, PointsToValue> entry: inSet.entrySet()) {
-                String varName = entry.getKey();
-                PointsToValue ptv = entry.getValue();
+            for (String varName: inSet.keySet()) {
+                PointsToValue ptv = inSet.get(varName);
 
                 // Don't compare against youself
                 if (variable.equals(varName))

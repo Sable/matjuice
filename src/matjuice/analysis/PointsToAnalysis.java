@@ -16,29 +16,28 @@ import java.util.HashSet;
 import java.util.Collections;
 
 
-public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis<Map<String, PointsToValue>> {
-    private Map<String, PointsToValue> initialMap;
+public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis<PointsToMap> {
+    private PointsToMap initialMap;
     private Map<Pair<TIRStmt, String>, MallocSite> statementMallocs;
 
     public PointsToAnalysis(TIRFunction tirFunction) {
         super(tirFunction);
-        initialMap = new HashMap<>();
+        initialMap = new PointsToMap();
         statementMallocs = new HashMap<>();
         MallocSite externalSite = MallocSite.newExternalSite();
 
+        // TODO(vfoley): scalar parameters should not have a malloc site
         // Input parameters point into a common external malloc site.
         for (ast.Name param : tirFunction.getInputParamList()) {
             String paramName = param.getID();
-            PointsToValue ptv = new PointsToValue();
-            ptv.addMallocSite(externalSite);
-            initialMap.put(paramName, ptv);
+            initialMap.addVariable(paramName);
+            initialMap.addMallocSite(paramName, externalSite);
         }
 
         // Output parameters start with an empty PointsToValue.
         for (ast.Name param : tirFunction.getOutputParamList()) {
             String paramName = param.getID();
-            PointsToValue ptv = new PointsToValue();
-            initialMap.put(paramName, ptv);
+            initialMap.addVariable(paramName);
         }
     }
 
@@ -73,33 +72,20 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
      * @return the union of the two maps
      */
     @Override
-    public Map<String, PointsToValue> merge(Map<String, PointsToValue> in1, Map<String, PointsToValue> in2) {
-        Map<String, PointsToValue> out = copy(in1);
-        for (Entry<String, PointsToValue> entry : in2.entrySet()) {
-            String varName = entry.getKey();
-            PointsToValue ptv = entry.getValue();
-
-            out.put(varName, ptv.merge(out.getOrDefault(varName, new PointsToValue())));
-        }
+    public PointsToMap merge(PointsToMap in1, PointsToMap in2) {
+        PointsToMap out = in1.merge(in2);
         return out;
     }
 
 
     @Override
-    public Map<String, PointsToValue> copy(Map<String, PointsToValue> in) {
-        Map<String, PointsToValue> out = new HashMap<>();
-
-        for (Entry<String, PointsToValue> entry : in.entrySet()) {
-            String varName = entry.getKey();
-            PointsToValue ptv = entry.getValue();
-
-            out.put(varName, ptv.copy());
-        }
+    public PointsToMap copy(PointsToMap in) {
+        PointsToMap out = in.copy();
         return out;
     }
 
     @Override
-    public Map<String, PointsToValue> newInitialFlow() {
+    public PointsToMap newInitialFlow() {
         return copy(initialMap);
     }
 
@@ -166,7 +152,7 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         // Kill the aliasing stmts that lhs was involved in from
         // the other variables in the outSet.
         System.out.printf("VFB: [%s] %s\n", lhs, currentOutSet);
-        PointsToValue lhsPtv = currentOutSet.getOrDefault(lhs, new PointsToValue());
+        PointsToValue lhsPtv = currentOutSet.get(lhs);
         Set<TIRCopyStmt> lhsAliasingStmts = lhsPtv.getAllAliasingStmts();
         for (String otherVar: currentOutSet.keySet()) {
             if (otherVar.equals(lhs))

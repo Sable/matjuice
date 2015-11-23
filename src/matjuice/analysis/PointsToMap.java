@@ -10,6 +10,7 @@ import natlab.tame.tir.TIRCopyStmt;
 public class PointsToMap {
     private Map<String, PointsToValue> map = new HashMap<>();
 
+    // Map-like methods
     public Set<String> keySet() {
         return map.keySet();
     }
@@ -22,6 +23,11 @@ public class PointsToMap {
         return map.getOrDefault(key, new PointsToValue());
     }
 
+    public void remove(String key) {
+        map.remove(key);
+    }
+
+    // Domain specific methods
     public void addVariable(String var) {
         this.put(var, new PointsToValue());
     }
