@@ -58,8 +58,15 @@ def run_matjuice(benchmark, problem_size):
         with os.popen("node %s.js" % benchmark) as stdout:
             return read_results_and_time(stdout)
 
+def verify_bubble(sorted_list):
+    for i in xrange(len(sorted_list) - 1):
+        if sorted_list[i] > sorted_list[i+1]:
+            return False
+    return True
+
 benchmarks = [
-    ("bubble", 15000),
+    #("bubble", 15000, verify_bubble),
+    ("collatz", 10000, lambda _: True),
 ]
 
 def main():
@@ -69,10 +76,12 @@ def main():
         pass
 
     for b in benchmarks:
-        mj_result, mj_time = run_matjuice(*b)
-        js_result, js_time = run_javascript(*b)
-        matlab_results, matlab_time = run_matlab(*b)
-        print "%s, %f, %f, %f" % (b[0], mj_time, js_time, matlab_time)
+        mj_result, mj_time = run_matjuice(b[0], b[1])
+        js_result, js_time = run_javascript(b[0], b[1])
+        matlab_results, matlab_time = run_matlab(b[0], b[1])
+        print "%s, %f, %d, %f, %d, %f, %d" % (b[0], mj_time, verify_bubble(mj_result),
+                                              js_time, verify_bubble(js_result),
+                                              matlab_time, verify_bubble(matlab_results))
 
 
 # def main():
