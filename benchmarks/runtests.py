@@ -64,9 +64,16 @@ def verify_bubble(sorted_list):
             return False
     return True
 
+def verify_collatz(results):
+    return True
+
+def verify_matmul(results):
+    return True
+
 benchmarks = [
-    #("bubble", 15000, verify_bubble),
-    ("collatz", 10000, lambda _: True),
+    ("bubble", 15000, verify_bubble),
+    ("collatz", 1000000, verify_collatz),
+    ("matmul", 1000, verify_matmul),
 ]
 
 def main():
@@ -75,36 +82,15 @@ def main():
     except OSError:
         pass
 
-    for b in benchmarks:
-        mj_result, mj_time = run_matjuice(b[0], b[1])
-        js_result, js_time = run_javascript(b[0], b[1])
-        matlab_results, matlab_time = run_matlab(b[0], b[1])
-        print "%s, %f, %d, %f, %d, %f, %d" % (b[0], mj_time, verify_bubble(mj_result),
-                                              js_time, verify_bubble(js_result),
-                                              matlab_time, verify_bubble(matlab_results))
-
-
-# def main():
-#     if len(sys.argv) != 4:
-#         print "Usage: %s <benchmark dir> <driver function> <arg>" % sys.argv[0]
-#         sys.exit(1)
-#     matlab_results, matlab_time = run_matlab(sys.argv[1], sys.argv[2], sys.argv[3])
-
-#     compile_javascript(sys.argv[1], sys.argv[2])
-#     t1 = time.time()
-#     javascript_results = run_javascript(sys.argv[1], sys.argv[2], sys.argv[3])
-#     t2 = time.time()
-#     javascript_time = t2 - t1
-
-#     if len(matlab_results) == len(javascript_results) and \
-#        all(abs(x-y) < EPSILON for x, y in itertools.izip(matlab_results, javascript_results)):
-#         print "MATLAB    : %.5f" % matlab_time
-#         print "JavaScript: %.5f" % javascript_time
-#         sys.exit(0)
-#     else:
-#         print(matlab_results)
-#         print(javascript_results)
-#         sys.exit(1)
+    print "benchmark, mjtime, mjsuccess, jstime, jssuccess, matlabtime, matlabsuccess"
+    for name, size, verify_fn in benchmarks:
+        mj_result, mj_time = run_matjuice(name, size)
+        js_result, js_time = run_javascript(name, size)
+        matlab_results, matlab_time = run_matlab(name, size)
+        print "%s, %f, %d, %f, %d, %f, %d" % (name,
+                                              mj_time, verify_fn(mj_result),
+                                              js_time, verify_fn(js_result),
+                                              matlab_time, verify_fn(matlab_results))
 
 
 if __name__ == "__main__":

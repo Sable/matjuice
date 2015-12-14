@@ -11,10 +11,19 @@ public class PointsToMap {
     private Map<String, PointsToValue> map = new HashMap<>();
 
     // Map-like methods
+
+    /**
+     * Return the keys of the map (i.e. the variables we have
+     * information on).
+     */
     public Set<String> keySet() {
         return map.keySet();
     }
 
+    /**
+     * Add a <key, value> pair to the map
+     */
+    // TODO(vfoley): necessary?
     public void put(String key, PointsToValue value) {
         map.put(key, value);
     }
@@ -68,21 +77,10 @@ public class PointsToMap {
         return aliasingStmts;
     }
 
-    public void removeAliasingStmt(String var, TIRCopyStmt aliasingStmt) {
-        PointsToValue ptv = this.get(var);
-        PointsToValue newPtv = new PointsToValue();
-
-        for (MallocSite m: ptv.getMallocSites()) {
-            newPtv.addMallocSite(m);
-            for (TIRCopyStmt otherAliasingStmt: ptv.getAliasingStmts(m)) {
-                if (!otherAliasingStmt.equals(aliasingStmt)) {
-                    newPtv.addAliasingStmt(m, otherAliasingStmt);
-                }
-            }
-        }
-        this.put(var, newPtv);
-    }
-
+    /**
+     * Remove the given aliasing statements as aliasing statements
+     * from all variables in the map.
+     */
     public void removeAliasingStmts(Set<TIRCopyStmt> aliasingStmts) {
         for (String var: this.keySet()) {
             PointsToValue ptv = this.get(var);
