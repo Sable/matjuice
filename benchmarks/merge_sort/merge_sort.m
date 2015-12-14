@@ -1,4 +1,4 @@
-function B = merge_sort(A, n)
+function [B] = merge_sort(A, n)
     if n <= 1
         B = A;
     else
@@ -10,4 +10,3 @@ function B = merge_sort(A, n)
         B = merge(A_left_sorted, A_right_sorted, A_left_len, A_right_len);
     end
 end
-

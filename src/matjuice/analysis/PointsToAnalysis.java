@@ -180,11 +180,6 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
                     astNode.getChild(i).analyze(this);
                 }
             }
-
-            @Override
-            public void caseStmt(ast.Stmt node) {
-                System.out.printf("MatJuice: %s\n        %s\n", node.getPrettyPrinted(), getOutFlowSets().get(node));
-            }
         }
 
         node.analyze(new Printer());

@@ -58,22 +58,24 @@ def run_matjuice(benchmark, problem_size):
         with os.popen("node %s.js" % benchmark) as stdout:
             return read_results_and_time(stdout)
 
-def verify_bubble(sorted_list):
+def verify_sorted(sorted_list):
     for i in xrange(len(sorted_list) - 1):
         if sorted_list[i] > sorted_list[i+1]:
             return False
     return True
 
-def verify_collatz(results):
+def verify_ignore(results):
     return True
 
-def verify_matmul(results):
-    return True
 
 benchmarks = [
-    ("bubble", 15000, verify_bubble),
-    ("collatz", 1000000, verify_collatz),
-    ("matmul", 1000, verify_matmul),
+    ("bubble", 15000, verify_sorted),
+    ("insertion_sort", 15000, verify_sorted),
+    ("merge_sort", 15000, verify_sorted),
+    #("make_change_rec", 200, verify_ignore),
+    ("make_change_dyn", 100, verify_ignore),
+    ("collatz", 1000000, verify_ignore),
+    ("matmul", 1000, verify_ignore),
 ]
 
 def main():
@@ -85,12 +87,13 @@ def main():
     print "benchmark, mjtime, mjsuccess, jstime, jssuccess, matlabtime, matlabsuccess"
     for name, size, verify_fn in benchmarks:
         mj_result, mj_time = run_matjuice(name, size)
-        js_result, js_time = run_javascript(name, size)
-        matlab_results, matlab_time = run_matlab(name, size)
+        #js_result, js_time = run_javascript(name, size)
+        js_result, js_time = [], 0
+        matlab_result, matlab_time = run_matlab(name, size)
         print "%s, %f, %d, %f, %d, %f, %d" % (name,
                                               mj_time, verify_fn(mj_result),
                                               js_time, verify_fn(js_result),
-                                              matlab_time, verify_fn(matlab_results))
+                                              matlab_time, verify_fn(matlab_result))
 
 
 if __name__ == "__main__":

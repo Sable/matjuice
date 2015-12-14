@@ -6,7 +6,7 @@ function main(size)
     ok = 1;
     for i = 1:size-1
         if B(i) > B(i+1)
-            ok = false;
+            ok = 0;
             break;
         end
     end

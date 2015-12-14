@@ -1,5 +1,5 @@
 function main(size)
-    coins = [25; 10; 5; 1];
+    coins = [1 5 10 25];
     tic();
     for i = 0:size
         make_change(coins, 4, i);
