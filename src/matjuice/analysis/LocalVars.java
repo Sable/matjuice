@@ -67,5 +67,10 @@ public class LocalVars {
             for (String lhsName: stmt.getLValues())
                 locals.add(lhsName);
         }
+
+        @Override
+        public void caseTIRForStmt(TIRForStmt stmt) {
+            locals.add(stmt.getLoopVarName().getID());
+        }
     }
 }
