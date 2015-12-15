@@ -73,7 +73,7 @@ benchmarks = [
     ("insertion_sort", 15000, verify_sorted),
     ("merge_sort", 15000, verify_sorted),
     #("make_change_rec", 200, verify_ignore),
-    ("make_change_dyn", 100, verify_ignore),
+    ("make_change_dyn", 1000, verify_ignore),
     ("collatz", 1000000, verify_ignore),
     ("matmul", 1000, verify_ignore),
 ]
