@@ -1,0 +1,269 @@
+/*
+ *  Copyright 2014-2015, Vincent Foley-Bourgon, McGill University
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+
+import matjuice.pretty.Pretty;
+import matjuice.pretty.PrettyBase;
+
+aspect PrettyPrinter {
+    public abstract PrettyBase Stmt.pp();
+    public abstract PrettyBase Expr.pp();
+
+    public PrettyBase Program.pp() {
+        PrettyBase[] ppFuns = new PrettyBase[this.getNumFunction()];
+        int i = 0;
+        for (Function f: this.getFunctions()) {
+            ppFuns[i] = f.pp();
+            i++;
+        }
+        return Pretty.separateBy(Pretty.NEWLINE, ppFuns);
+    }
+
+    public PrettyBase Function.pp() {
+        int n = this.getNumStmt() + this.getNumDecl();
+        PrettyBase[] ppStmts = new PrettyBase[n];
+        int i = 0;
+
+        for (Decl d: this.getDeclList()) {
+            ppStmts[i] = Pretty.concat(
+                Pretty.text("var "),
+                Pretty.text(d.getId()),
+                Pretty.text(" = 0;")
+            );
+            i++;
+        }
+
+        for (Stmt s: this.getStmtList()) {
+            ppStmts[i] = s.pp();
+            i++;
+        }
+
+        i = 0;
+        PrettyBase[] ppParams = new PrettyBase[this.getNumParam()];
+        for (Identifier param: this.getParamList()) {
+            ppParams[i] = Pretty.text(param.getId());
+            i++;
+        }
+
+        return Pretty.concat(
+            Pretty.text("function "),
+            Pretty.text(this.getFunctionName()),
+            Pretty.parenthesized(Pretty.separateBy(Pretty.text(", "), ppParams)),
+            Pretty.block(ppStmts)
+        );
+    }
+
+    public PrettyBase StmtAssign.pp() {
+        return Pretty.concat(
+            Pretty.text(this.getId()),
+            Pretty.text(" = "),
+            this.getExpr().pp(),
+            Pretty.text(";")
+        );
+    }
+
+    public PrettyBase StmtSet.pp() {
+        return Pretty.concat(
+            Pretty.text(this.getArray()),
+            Pretty.wrapped(
+                Pretty.text("["),
+                Pretty.text("]"),
+                this.getIndex().pp()),
+            Pretty.text(" = "),
+            this.getExpr().pp(),
+            Pretty.text(";")
+        );
+    }
+
+    public PrettyBase StmtWhile.pp() {
+        return PrettyBase.concat(
+            Pretty.text("while "),
+            Pretty.parenthesized(this.getExpr().pp()),
+            Pretty.block(Utils.ppStmts(this.getStmtList()))
+        );
+    }
+    public PrettyBase StmtFor.pp() {
+        return PrettyBase.concat(
+            Pretty.text("for "),
+            Pretty.parenthesized(
+                Pretty.separateBy(
+                    Pretty.text("; "),
+                    Pretty.concat(
+                        Pretty.text(this.getId()),
+                        Pretty.text(" = "),
+                        this.getStart().pp()
+                    ),
+                    Pretty.concat(
+                        Pretty.text(this.getId()),
+                        Pretty.SPACE,
+                        this.getComparisonOp().pp(),
+                        Pretty.SPACE,
+                        this.getStop().pp()
+                    ),
+                    Pretty.concat(
+                        Pretty.text(this.getId()),
+                        Pretty.text(" = "),
+                        Pretty.text(this.getId()),
+                        Pretty.SPACE,
+                        this.getUpdateOp().pp(),
+                        Pretty.SPACE,
+                        this.getStep().pp()
+                    )
+                ),
+                Pretty.block(Utils.ppStmts(this.getStmtList()))
+            )
+        );
+    }
+
+    public PrettyBase StmtIf.pp() {
+        PrettyBase ifPart;
+        PrettyBase elsePart = Pretty.EMPTY;
+
+        ifPart = Pretty.concat(
+            Pretty.text("if "),
+            Pretty.parenthesized(this.getExpr().pp()),
+            Pretty.block(Utils.ppStmts(this.getThenStmtList()))
+        );
+        if (this.getNumElseStmt()) {
+            elsePart = Pretty.concat(
+                Pretty.text("else "),
+                Pretty.block(Utils.ppStmts(this.getElseStmts()))
+            );
+        }
+        return Pretty.concat(ifPart, elsePart);
+    }
+
+    public PrettyBase StmtBreak.pp() {
+        return Pretty.text("break;");
+    }
+
+    public PrettyBase StmtContinue.pp() {
+        return Pretty.text("continue;");
+    }
+
+    public PrettyBase ExprId.pp() {
+        return Pretty.text(this.getId());
+    }
+
+    public PrettyBase ExprInt.pp() {
+        return Pretty.text(this.getInt().toString());
+    }
+
+    public PrettyBase ExprDouble.pp() {
+        return Pretty.text(this.getDouble().toString());
+    }
+
+    public PrettyBase ExprString.pp() {
+        return Pretty.wrapped(
+            Pretty.text("\""),
+            Pretty.text("\""),
+            this.getString()
+        );
+    }
+
+    public PrettyBase ExprArray.pp() {
+        PrettyBase[] ppExprs = new PrettyBase[this.getNumExpr()];
+        int i = 0;
+        for (Expr e: this.getExrList()) {
+            ppExprs[i] = e.pp();
+            i++;
+        }
+        return Pretty.wrapped(
+            Pretty.text("["),
+            Pretty.text("]"),
+            Pretty.separateBy(
+                Pretty.text(", "),
+                ppExprs
+            )
+        );
+    }
+
+    public PrettyBase ExprLambda.pp() {
+        PrettyBase[] ppParams = new PrettyBase[this.getNumArg()];
+        int i = 0;
+        for (Identifier id: this.getArgList()) {
+            ppParams[i] = Pretty.text(id.getId());
+            i++;
+        }
+        return Pretty.concat(
+            Pretty.text("function"),
+            Pretty.parenthesized(
+                Pretty.separateBy(Pretty.text(", "), ppParams)
+            ),
+            Pretty.block(Utils.ppStmts(this.getStmtList()))
+        );
+    }
+
+    public PrettyBase ExprCall.pp() {
+        PrettyBase[] ppArgs = new PrettyBase[this.getNumArg()];
+        int i = 0;
+        for (Expr arg: this.getArgList()) {
+            ppArgs[i] = arg.pp();
+            i++;
+        }
+        return Pretty.concat(
+            Pretty.text(this.getFunction()),
+            ppArgs
+        );
+    }
+
+    public PrettyBase ExprMethodCall.pp() {
+        PrettyBase[] ppArgs = new PrettyBase[this.getNumArg()];
+        int i = 0;
+        for (Expr arg: this.getArgList()) {
+            ppArgs[i] = arg.pp();
+            i++;
+        }
+        return Pretty.concat(
+            Pretty.text(this.getReceiver()),
+            Pretty.text("."),
+            Pretty.text(this.getMethod()),
+            ppArgs
+        );
+    }
+
+    public PrettyBase ExprBinop.pp() {
+        return Pretty.parenthesized(
+            Pretty.concat(
+                this.getExpr1().pp(),
+                Pretty.SPACE,
+                this.getOp.pp(),
+                Pretty.SPACE,
+                this.getExpr2().pp()
+            )
+        );
+    }
+
+    public PrettyBase ExprUnop.pp() {
+        return Pretty.parenthesized(
+            Pretty.concat(
+                this.getOp.pp(),
+                this.getExpr().pp()
+            )
+        );
+    }
+
+    public PrettyBase ExprGet.pp() {
+        return Pretty.concat(
+            Pretty.text(this.getArray()),
+            Pretty.wrapped(
+                Pretty.text("["),
+                Pretty.text("]"),
+                tihs.getIndex().pp()
+            )
+        );
+    }
+}
