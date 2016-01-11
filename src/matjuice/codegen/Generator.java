@@ -478,6 +478,8 @@ public class Generator {
             return genStringLiteralExpr((ast.StringLiteralExpr) expr);
         if (expr instanceof ast.NameExpr)
             return genNameExpr((ast.NameExpr) expr);
+        if (expr instanceof ast.ColonExpr)
+            return new ExprId("MC_COLON");
 
         throw new UnsupportedOperationException(
             String.format("Expr node not supported. %d:%d: [%s] [%s]",
@@ -583,10 +585,14 @@ public class Generator {
 
     private boolean isSlicingOperation(TIRStmt tirStmt, TIRCommaSeparatedList indices) {
         for (ast.Expr index : indices) {
-            ast.Name indexName = ((ast.NameExpr) index).getName();
-            BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, indexName.getID());
-            if (!bmv.getShape().isScalar())
+            if (index instanceof ast.ColonExpr)
                 return true;
+            if (index instanceof ast.NameExpr) {
+                ast.Name indexName = ((ast.NameExpr) index).getName();
+                BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, indexName.getID());
+                if (!bmv.getShape().isScalar())
+                    return true;
+            }
         }
         return false;
     }
