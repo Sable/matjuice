@@ -5,7 +5,7 @@ mj_out
 matjuice.jar
 matjuice.sh
 tests/**/*.js
-new-benchmarks/build
+new-benchmarks/_BUILD
 
 # LaTeX files
 *.log
