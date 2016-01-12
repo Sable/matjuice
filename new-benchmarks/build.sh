@@ -1,7 +1,45 @@
-#!/bin/sh
+#!/bin/bash
 
 MATJUICE=../matjuice.sh
 BUILD_DIR=_BUILD
+
+BENCHMARKS=(
+    adpt/drv_adpt.m
+    arsim/drv_arsim.m
+    bbai/drv_babai.m
+    bubble/drv_bubble.m
+    capr/drv_capr.m
+    clos/drv_clos.m
+    create/drv_createlhs.m
+    crni/drv_crni.m
+    dich/drv_dich.m
+    diff/drv_diff.m
+    edit/drv_edit.m
+    fdtd/drv_fdtd.m
+    fft/drv_fft.m
+    fiff/drv_fiff.m
+    lgdr/drv_lgdr.m
+    matmul/drv_matmul_p.m
+    mbrt/drv_mbrt.m
+    mcpi/drv_mcpi_p.m
+    nb1d/drv_nb1d.m
+    nb3d/drv_nb3d.m
+    numprime/drv_prime.m
+    optstop/drv_osp.m
+    spqr/drv_spqr.m
+)
+
+
+for b in ${BENCHMARKS[@]}; do
+    jsdrv=$(basename b .m).js
+    echo -n "$b... "
+    $MATJUICE $b $BUILD_DIR/$jsdrv "DOUBLE&1*1&REAL" > /dev/null
+    if [ $? -eq 0 ]; then
+        echo "OK"
+    else
+        echo "FAIL"
+    fi
+done
 
 HTML_TEMPLATE=`cat <<EOF
 <html>
@@ -13,31 +51,6 @@ EOF`
 
 rm -rf $BUILD_DIR
 mkdir -p $BUILD_DIR
-$MATJUICE adpt/drv_adpt.m $BUILD_DIR/drv_adpt.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE arsim/drv_arsim.m $BUILD_DIR/drv_arsim.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE bbai/drv_babai.m $BUILD_DIR/drv_babai.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE bubble/drv_bubble.m $BUILD_DIR/drv_bubble.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE capr/drv_capr.m $BUILD_DIR/drv_capr.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE clos/drv_clos.m $BUILD_DIR/drv_clos.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE create/drv_createlhs.m $BUILD_DIR/drv_createlhs.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE crni/drv_crni.m $BUILD_DIR/drv_crni.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE dich/drv_dich.m $BUILD_DIR/drv_dich.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE diff/drv_diff.m $BUILD_DIR/drv_diff.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE edit/drv_edit.m $BUILD_DIR/drv_edit.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE fdtd/drv_fdtd.m $BUILD_DIR/drv_fdtd.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE fft/drv_fft.m $BUILD_DIR/drv_fft.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE fiff/drv_fiff.m $BUILD_DIR/drv_fiff.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE lgdr/drv_lgdr.m $BUILD_DIR/drv_lgdr.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE matmul/drv_matmul_p.m $BUILD_DIR/drv_matmul_p.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE mbrt/drv_mbrt.m $BUILD_DIR/drv_mbrt.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE mcpi/drv_mcpi_p.m $BUILD_DIR/drv_mcpi_p.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE nb1d/drv_nb1d.m $BUILD_DIR/drv_nb1d.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE nb3d/drv_nb3d.m $BUILD_DIR/drv_nb3d.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE numprime/drv_prime.m $BUILD_DIR/drv_prime.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE optstop/drv_osp.m $BUILD_DIR/drv_osp.js "DOUBLE&1*1&REAL" > /dev/null
-#	$MATJUICE quadrature/drv_quad.m $BUILD_DIR/drv_quad.js "DOUBLE&1*1&REAL" > /dev/null
-#	$MATJUICE scra/drv_scra.m $BUILD_DIR/drv_scra.js "DOUBLE&1*1&REAL" > /dev/null
-$MATJUICE spqr/drv_spqr.m $BUILD_DIR/drv_spqr.js "DOUBLE&1*1&REAL" > /dev/null
 
 
 for f in $BUILD_DIR/*.js; do
