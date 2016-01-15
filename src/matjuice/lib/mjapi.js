@@ -138,13 +138,13 @@ function mj_convert_to_slices(array, indices) {
             slice_indices[i] = indices[i];
         }
         else {
-            slice_indices[i] = mc_colon(indices[i], indices[i]);
+            slice_indices[i] = [indices[i], indices[i]];
         }
     }
     return slice_indices;
 }
 
-function mj_compute_shape(array, slice_indices) {
+function mj_compute_shape(slice_indices) {
     var shape = [];
     for (var i = 0; i < slice_indices.length; ++i) {
         shape.push(slice_indices[i].mj_numel());
@@ -155,36 +155,44 @@ function mj_compute_shape(array, slice_indices) {
     return shape;
 }
 
-function mj_compute_indices(slices) {
-    var N = slices.length;
-    var max = 1;
-    var digits = [];
-    for (var i = 0; i < N; ++i) {
-        max *= slices[i].mj_numel();
-        digits.push(slices[i].mj_numel());
+
+
+function MJSliceIterator(indices) {
+    N = indices.length;
+
+    this.indices = indices;
+    this.is_done = false;
+
+    this.curr = new Array(N);
+    for (var j = 0; j < N; ++j) {
+        this.curr[j] = 0;
     }
 
-    var indices = new Array(N);
-    for (var i = 0; i < N; ++i)
-        indices[i] = 0;
+    this.next = function() {
+        if (this.is_done)
+            return null;
 
-    var all_combinations = new Array(max);
-    for (var i = 0; i < max; ++i) {
-        var curr = new Array(N);
+        // Save current index settings
+        prev = this.curr.slice();
 
-        // Create the new index
+        // Advance current index
         for (var j = 0; j < N; ++j) {
-            //curr[j] = slices[j][indices[j]];
-            curr[j] = slices[j].mj_get([indices[j] + 1]);
-        }
-        all_combinations[i] = curr;
-
-        // Update
-        for (var j = N-1; j >= 0; --j) {
-            indices[j] = (indices[j] + 1) % digits[j];
-            if (indices[j] !== 0)
+            this.curr[j] = (this.curr[j] + 1) % this.indices[j].length;
+            if (this.curr[j] !== 0)
                 break;
         }
+
+        // We are done if all indices of prev are at the end
+        this.is_done = true;
+        for (var j = 0; j < N; ++j) {
+            this.is_done = this.is_done && (prev[j]+1 === this.indices[j].length);
+        }
+
+        var result = new Array(N);
+        for (var j = 0; j < N; ++j) {
+            result[j] = this.indices[j][prev[j]];
+        }
+
+        return result;
     }
-    return all_combinations;
 }

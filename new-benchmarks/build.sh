@@ -3,6 +3,16 @@
 MATJUICE=../matjuice.sh
 BUILD_DIR=_BUILD
 
+
+HTML_TEMPLATE=`cat <<EOF
+<html>
+  <head>
+    <script type="text/javascript" src="SOURCE_FILE"></script>
+  </head>
+</html>
+EOF`
+
+
 BENCHMARKS=(
     adpt/drv_adpt.m
     arsim/drv_arsim.m
@@ -29,34 +39,20 @@ BENCHMARKS=(
     spqr/drv_spqr.m
 )
 
+rm -rf $BUILD_DIR
+mkdir -p $BUILD_DIR
 
 for b in ${BENCHMARKS[@]}; do
-    jsdrv=$(basename b .m).js
+    basefile=$(basename $b .m)
+    jsdrv=$basefile.js
+    htmlfile=$basefile.html
     echo -n "$b... "
     $MATJUICE $b $BUILD_DIR/$jsdrv "DOUBLE&1*1&REAL" > /dev/null
     if [ $? -eq 0 ]; then
         echo "OK"
+        echo $HTML_TEMPLATE > $BUILD_DIR/$htmlfile
+        sed -i "s/SOURCE_FILE/$jsdrv/" $BUILD_DIR/$htmlfile
     else
         echo "FAIL"
     fi
-done
-
-HTML_TEMPLATE=`cat <<EOF
-<html>
-  <head>
-    <script type="text/javascript" src="SOURCE_FILE"></script>
-  </head>
-</html>
-EOF`
-
-rm -rf $BUILD_DIR
-mkdir -p $BUILD_DIR
-
-
-for f in $BUILD_DIR/*.js; do
-    basefile=$(basename $f .js)
-    jsfile=$basefile.js
-    htmlfile=$basefile.html
-    echo $HTML_TEMPLATE > $BUILD_DIR/$htmlfile
-    sed -i "s/SOURCE_FILE/$jsfile/" $BUILD_DIR/$htmlfile
 done

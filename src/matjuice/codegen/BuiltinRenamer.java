@@ -53,7 +53,7 @@ public class BuiltinRenamer {
         "plus", "minus", "mtimes", "rem",
         "mod", "mrdivide", "lt", "le", "gt", "ge", "eq", "ne", "length",
         "sin", "uminus", "exp", "rdivide", "round", "sqrt", "mpower",
-        "floor", "ceil",
+        "floor", "ceil", "power", "abs"
     };
 
     static {

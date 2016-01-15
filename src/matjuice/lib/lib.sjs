@@ -477,7 +477,7 @@ function mc_uminus_S(x) {
 
 function mc_uminus_M(m) {
     var out = m.mj_clone();
-    for (var i = 0; i < m.mj_numel(); ++i)
+    for (var i = 1; i <= m.mj_numel(); ++i)
         out.mj_set([i], -out.mj_get([i]));
     return out;
 }
@@ -495,6 +495,25 @@ function mc_round_M(m) {
 
 function mc_mpower_SS(a, b) {
     return Math.pow(a, b);
+}
+
+function mc_power_SS(a, b) {
+    return Math.pow(a, b);
+}
+
+function mc_power_SM(a, b) {
+    var out = b.mj_clone();
+    for (var i = 0; i < b.mj_numel(); ++i)
+        out[i] = Math.pow(a, out[i]);
+    return out;
+}
+
+function mc_power_MS(a, b) {
+    var out = a.mj_clone();
+    for (var i = 0; i < a.mj_numel(); ++i) {
+        out[i] = Math.pow(out[i], b);
+    }
+    return out;
 }
 
 function mc_true() {
@@ -692,6 +711,16 @@ function mc_exp_M(m) {
     return out;
 }
 
+function mc_abs_S(x) {
+    return Math.abs(x);
+}
+
+function mc_abs_M(m) {
+    var out = m.mj_clone();
+    elemwise(out <= Math.abs m);
+    return out;
+}
+
 
 function mc_colon() {
     var start, stop, step;
@@ -778,27 +807,6 @@ function mc_colon() {
 // }
 
 
-function mc_slice_get(a, indices) {
-    // Compute shape and length of resulting array
-    var slice_indices = mj_convert_to_slices(a, indices);
-    var result_shape = mj_compute_shape(a, slice_indices);
-    var result_length = 1;
-    for (var i = 0; i < result_shape.length; ++i)
-        result_length *= result_shape[i];
-
-    var result_array = mj_create(new Float64Array(result_length), result_shape);
-    var new_indices = mj_compute_indices(slice_indices);
-
-    var first_index = new_indices[0];
-    for (var i = 1; i <= result_length; ++i) {
-        var this_index = new_indices[i-1].slice();
-        for (var j = 0; j < first_index.length; ++j)
-            this_index[j] = this_index[j] - first_index[j] + 1;
-        mc_array_set(result_array, this_index, mc_array_get(a, new_indices[i-1]));
-    }
-    return result_array;
-}
-
 function mc_transpose(matrix) {
     var new_matrix = mc_zeros(matrix.mj_size()[1], matrix.mj_size()[0]);
     for (var i = 1; i <= matrix.mj_size()[0]; ++i) {
@@ -878,5 +886,35 @@ function loop_direction(from, step, to) {
     }
     else {
         return mc_eq_SS;
+    }
+}
+
+function mc_slice_get(m, indices) {
+    var slice_indices = mj_convert_to_slices(m, indices);
+    var shape = mj_compute_shape(slice_indices);
+
+    var numel = 1;
+    for (var i = 0; i < shape.length; ++i)
+        numel *= shape[i];
+
+    var out = mj_create(new Float64Array(numel), shape);
+    var it = new MJSliceIterator(slice_indices);
+    var i = 0;
+
+    while ((x = it.next()) !== null) {
+        var y = m.mj_get(x);
+        out[i++] = y;
+    }
+
+    return out;
+}
+
+function mc_slice_set(m, values, indices) {
+    var slice_indices = mj_convert_to_slices(m, indices);
+    var i = 0;
+    var it = new MJSliceIterator(slice_indices);
+
+    while ((x = it.next()) !== null) {
+        m.mj_set(x, values[i++]);
     }
 }
