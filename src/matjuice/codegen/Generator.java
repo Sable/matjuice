@@ -21,9 +21,6 @@ import java.util.HashSet;
 import java.util.Map;
 
 import matjuice.jsast.*;
-import matjuice.analysis.ConstPropagation;
-import matjuice.analysis.ConstInfo;
-import matjuice.analysis.ConstKind;
 import matjuice.analysis.ParameterCopyAnalysis;
 import matjuice.analysis.LocalVars;
 import matjuice.analysis.PointsToAnalysis;
@@ -47,7 +44,6 @@ public class Generator {
 
     private Set<String> locals;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
-    private Map<String, ConstInfo> constMap;
 
     public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
         this.analysis = analysis;
@@ -72,9 +68,6 @@ public class Generator {
 
         // Do copy insertion
         performCopyInsertion(tirFunction);
-
-        // Obtain constant information
-        constMap = ConstPropagation.apply(tirFunction);
 
         // Do the statements first as some may create new locals.
         StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
@@ -185,12 +178,6 @@ public class Generator {
      */
     private Stmt genAssignLiteralStmt(TIRAssignLiteralStmt tirStmt) {
         String lhs = getSingleLhs(tirStmt);
-
-        if (constMap.containsKey(lhs) && constMap.get(lhs).isConst()) {
-            locals.remove(lhs);
-            return new StmtNull();
-        }
-
         return new StmtAssign(lhs, genExpr(tirStmt.getRHS()));
     }
 
@@ -310,6 +297,7 @@ public class Generator {
                 tirStmt, arrayName, tirStmt.getIndices(), linearizedIndex);
 
             // Bounds check
+            /*
             String lessThanZero = newTemp();
             String numElementClosure = newTemp();
             String numElements = newTemp();
@@ -322,7 +310,7 @@ public class Generator {
             seq.addStmt(new StmtIf(outOfBounds,
                 new StmtSequence(new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds"))))),
                 new StmtSequence()));
-
+            */
             seq.addStmt(new StmtGet(getSingleLhs(tirStmt), arrayName, new ExprId(linearizedIndex)));
             return seq;
         }
@@ -357,6 +345,7 @@ public class Generator {
             StmtSequence seq = genIndexingComputation(tirStmt, arrayName, tirStmt.getIndices(), linearizedIndex);
 
             // Bounds check
+            /*
             String lessThanZero = newTemp();
             String numElementClosure = newTemp();
             String numElements = newTemp();
@@ -372,6 +361,7 @@ public class Generator {
                   greaterThanEnd,
                   new StmtSequence(new List<>(new StmtCall(new Opt<>(new Identifier(arrayName)), "mc_resize", new List<>(new ExprId(arrayName), new ExprId(linearizedIndex))))),
                   new StmtSequence()));
+            */
 
             seq.addStmt(new StmtSet(arrayName, new ExprId(linearizedIndex), tirStmt.getValueName().getID()));
             return seq;
@@ -428,17 +418,10 @@ public class Generator {
         Expr incr = tirStmt.hasIncr() ? new ExprId(tirStmt.getIncName().getID()) : new ExprInt(1);
         StmtSequence body = genStmtList(tirStmt.getStatements());
 
-        // Const propagation
-        String lowerBoundVar = tirStmt.getLowerName().getID();
-        String upperBoundVar = tirStmt.getUpperName().getID();
-
-        Expr lowerBound = genPossiblyConstExpr(lowerBoundVar, constMap);
-        Expr upperBound = genPossiblyConstExpr(upperBoundVar, constMap);
-
         return new StmtFor(
             iterVar,
-            lowerBound,
-            upperBound,
+            new ExprId(tirStmt.getLowerName().getID()),
+            new ExprId(tirStmt.getUpperName().getID()),
             incr,
             cmpOp,
             Binop.Add,
@@ -548,21 +531,9 @@ public class Generator {
         return new ExprString(buf.toString());
     }
 
-    private Expr genPossiblyConstExpr(String varName, Map<String, ConstInfo> map) {
-        if (map.containsKey(varName)) {
-            ConstInfo ci = map.get(varName);
-            if (ci.getKind() == ConstKind.Int)
-                return new ExprInt(ci.getIntValue());
-            if (ci.getKind() == ConstKind.Float)
-                return new ExprFloat(ci.getFloatValue());
-        }
-        return new ExprId(varName);
-    }
-
     private Expr genNameExpr(ast.NameExpr expr) {
         String varName = expr.getName().getID();
-        ast.Stmt parentStmt = NodeFinder.findParent(ast.Stmt.class, expr);
-        return genPossiblyConstExpr(varName, constMap);
+        return new ExprId(varName);
     }
 
     private static String getSingleLhs(TIRAbstractAssignToVarStmt tirStmt) {

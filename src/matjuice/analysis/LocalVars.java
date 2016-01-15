@@ -45,7 +45,7 @@ public class LocalVars {
 
         @Override
         public void caseASTNode(ASTNode astNode) {
-            for(int i = 0; i < astNode.getNumChild(); i++) {
+            for (int i = 0; i < astNode.getNumChild(); i++) {
                 ASTNode child = astNode.getChild(i);
                 if (child instanceof TIRNode) {
                     ((TIRNode) child).tirAnalyze(this);
@@ -71,6 +71,9 @@ public class LocalVars {
         @Override
         public void caseTIRForStmt(TIRForStmt stmt) {
             locals.add(stmt.getLoopVarName().getID());
+            for (int i = 0; i < stmt.getNumChild(); ++i) {
+                caseASTNode(stmt.getChild(i));
+            }
         }
     }
 }
