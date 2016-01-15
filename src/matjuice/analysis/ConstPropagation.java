@@ -14,10 +14,10 @@ import java.util.Collections;
 public class ConstPropagation extends TIRAbstractSimpleStructuralForwardAnalysis<Map<String, ConstInfo>> {
     private Map<String, ConstInfo> initialMap;
 
-    public static Map<ast.ASTNode, Map<String, ConstInfo>> apply(TIRFunction tirFunction) {
+    public static Map<String, ConstInfo> apply(TIRFunction tirFunction) {
         ConstPropagation cp = new ConstPropagation(tirFunction);
         tirFunction.tirAnalyze(cp);
-        return cp.outFlowSets;
+        return cp.currentOutSet;
     }
 
     public ConstPropagation(TIRFunction tirFunction) {
@@ -53,6 +53,7 @@ public class ConstPropagation extends TIRAbstractSimpleStructuralForwardAnalysis
 
     @Override
     public void caseTIRFunction(TIRFunction tirFunction) {
+        System.out.println(tirFunction.getPrettyPrinted());
         currentInSet = newInitialFlow();
         currentOutSet = copy(currentInSet);
         caseASTNode(tirFunction);
@@ -60,6 +61,7 @@ public class ConstPropagation extends TIRAbstractSimpleStructuralForwardAnalysis
 
     @Override
     public void caseTIRAssignLiteralStmt(TIRAssignLiteralStmt stmt) {
+        System.out.println("Literal: " + stmt.getPrettyPrinted());
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
 

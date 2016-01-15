@@ -47,7 +47,7 @@ public class Generator {
 
     private Set<String> locals;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
-    private Map<ast.ASTNode, Map<String, ConstInfo>> constMap;
+    private Map<String, ConstInfo> constMap;
 
     public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
         this.analysis = analysis;
@@ -184,10 +184,9 @@ public class Generator {
      * strings, etc.
      */
     private Stmt genAssignLiteralStmt(TIRAssignLiteralStmt tirStmt) {
-        Map<String, ConstInfo> map = constMap.get(tirStmt);
         String lhs = getSingleLhs(tirStmt);
 
-        if (map.containsKey(lhs) && map.get(lhs).isConst()) {
+        if (constMap.containsKey(lhs) && constMap.get(lhs).isConst()) {
             locals.remove(lhs);
             return new StmtNull();
         }
@@ -429,10 +428,17 @@ public class Generator {
         Expr incr = tirStmt.hasIncr() ? new ExprId(tirStmt.getIncName().getID()) : new ExprInt(1);
         StmtSequence body = genStmtList(tirStmt.getStatements());
 
+        // Const propagation
+        String lowerBoundVar = tirStmt.getLowerName().getID();
+        String upperBoundVar = tirStmt.getUpperName().getID();
+
+        Expr lowerBound = genPossiblyConstExpr(lowerBoundVar, constMap);
+        Expr upperBound = genPossiblyConstExpr(upperBoundVar, constMap);
+
         return new StmtFor(
             iterVar,
-            new ExprId(tirStmt.getLowerName().getID()),
-            new ExprId(tirStmt.getUpperName().getID()),
+            lowerBound,
+            upperBound,
             incr,
             cmpOp,
             Binop.Add,
@@ -542,10 +548,7 @@ public class Generator {
         return new ExprString(buf.toString());
     }
 
-    private Expr genNameExpr(ast.NameExpr expr) {
-        String varName = expr.getName().getID();
-        ast.Stmt parentStmt = NodeFinder.findParent(ast.Stmt.class, expr);
-        Map<String, ConstInfo> map = constMap.get(parentStmt);
+    private Expr genPossiblyConstExpr(String varName, Map<String, ConstInfo> map) {
         if (map.containsKey(varName)) {
             ConstInfo ci = map.get(varName);
             if (ci.getKind() == ConstKind.Int)
@@ -554,6 +557,12 @@ public class Generator {
                 return new ExprFloat(ci.getFloatValue());
         }
         return new ExprId(varName);
+    }
+
+    private Expr genNameExpr(ast.NameExpr expr) {
+        String varName = expr.getName().getID();
+        ast.Stmt parentStmt = NodeFinder.findParent(ast.Stmt.class, expr);
+        return genPossiblyConstExpr(varName, constMap);
     }
 
     private static String getSingleLhs(TIRAbstractAssignToVarStmt tirStmt) {

@@ -78,4 +78,26 @@ public class ConstInfo {
             return "FLOAT(" + floatValue + ")";
         return "???";
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof ConstInfo))
+            return false;
+
+        ConstInfo that = (ConstInfo) other;
+        if (this.kind == ConstKind.Bottom && that.kind == ConstKind.Bottom)
+            return true;
+        if (this.kind == ConstKind.Top && that.kind == ConstKind.Top)
+            return true;
+        if (this.kind == ConstKind.Int && that.kind == ConstKind.Int)
+            return this.getIntValue() == that.getIntValue();
+        if (this.kind == ConstKind.Float && that.kind == ConstKind.Float)
+            return this.getFloatValue() == that.getFloatValue();
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return toString().hashCode();
+    }
 }
