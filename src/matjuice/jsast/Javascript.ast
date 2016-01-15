@@ -36,6 +36,7 @@ StmtReturn:Stmt   ::= Return:Identifier*;                                       
 StmtBreak:Stmt;                                                                         // break;
 StmtContinue:Stmt;                                                                      // continue;
 StmtSequence:Stmt ::= Stmt:Stmt*;                                                       // Multiple statements to allow for one Tamer statement to generate multiple JS statements.
+StmtNull:Stmt ;
 
 abstract Expr;
 ExprInt:Expr      ::= <Value:Integer>; // 3

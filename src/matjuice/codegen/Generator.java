@@ -21,6 +21,9 @@ import java.util.HashSet;
 import java.util.Map;
 
 import matjuice.jsast.*;
+import matjuice.analysis.ConstPropagation;
+import matjuice.analysis.ConstInfo;
+import matjuice.analysis.ConstKind;
 import matjuice.analysis.ParameterCopyAnalysis;
 import matjuice.analysis.LocalVars;
 import matjuice.analysis.PointsToAnalysis;
@@ -44,6 +47,7 @@ public class Generator {
 
     private Set<String> locals;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
+    private Map<ast.ASTNode, Map<String, ConstInfo>> constMap;
 
     public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
         this.analysis = analysis;
@@ -68,6 +72,9 @@ public class Generator {
 
         // Do copy insertion
         performCopyInsertion(tirFunction);
+
+        // Obtain constant information
+        constMap = ConstPropagation.apply(tirFunction);
 
         // Do the statements first as some may create new locals.
         StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
@@ -177,7 +184,14 @@ public class Generator {
      * strings, etc.
      */
     private Stmt genAssignLiteralStmt(TIRAssignLiteralStmt tirStmt) {
+        Map<String, ConstInfo> map = constMap.get(tirStmt);
         String lhs = getSingleLhs(tirStmt);
+
+        if (map.containsKey(lhs) && map.get(lhs).isConst()) {
+            locals.remove(lhs);
+            return new StmtNull();
+        }
+
         return new StmtAssign(lhs, genExpr(tirStmt.getRHS()));
     }
 
@@ -528,8 +542,18 @@ public class Generator {
         return new ExprString(buf.toString());
     }
 
-    private ExprId genNameExpr(ast.NameExpr expr) {
-        return new ExprId(expr.getName().getID());
+    private Expr genNameExpr(ast.NameExpr expr) {
+        String varName = expr.getName().getID();
+        ast.Stmt parentStmt = NodeFinder.findParent(ast.Stmt.class, expr);
+        Map<String, ConstInfo> map = constMap.get(parentStmt);
+        if (map.containsKey(varName)) {
+            ConstInfo ci = map.get(varName);
+            if (ci.getKind() == ConstKind.Int)
+                return new ExprInt(ci.getIntValue());
+            if (ci.getKind() == ConstKind.Float)
+                return new ExprFloat(ci.getFloatValue());
+        }
+        return new ExprId(varName);
     }
 
     private static String getSingleLhs(TIRAbstractAssignToVarStmt tirStmt) {

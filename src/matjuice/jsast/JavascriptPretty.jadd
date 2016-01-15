@@ -258,6 +258,10 @@ aspect PrettyPrinter {
         return Pretty.text("continue;");
     }
 
+    public PrettyBase StmtNull.pp() {
+        return Pretty.EMPTY;
+    }
+
     public PrettyBase StmtSequence.pp() {
         PrettyBase[] ppStmts = new PrettyBase[this.getNumStmt()];
         for (int i = 0; i < ppStmts.length; ++i) {
