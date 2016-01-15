@@ -53,7 +53,6 @@ public class ConstPropagation extends TIRAbstractSimpleStructuralForwardAnalysis
 
     @Override
     public void caseTIRFunction(TIRFunction tirFunction) {
-        System.out.println(tirFunction.getPrettyPrinted());
         currentInSet = newInitialFlow();
         currentOutSet = copy(currentInSet);
         caseASTNode(tirFunction);
@@ -61,7 +60,6 @@ public class ConstPropagation extends TIRAbstractSimpleStructuralForwardAnalysis
 
     @Override
     public void caseTIRAssignLiteralStmt(TIRAssignLiteralStmt stmt) {
-        System.out.println("Literal: " + stmt.getPrettyPrinted());
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
 
