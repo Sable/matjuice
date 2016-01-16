@@ -147,7 +147,7 @@ function mj_convert_to_slices(array, indices) {
 function mj_compute_shape(slice_indices) {
     var shape = [];
     for (var i = 0; i < slice_indices.length; ++i) {
-        shape.push(slice_indices[i].mj_numel());
+        shape.push(slice_indices[i].length);
     }
     // HACK(vfoley): make sure always at least two dimensions.
     if (shape.length === 1)

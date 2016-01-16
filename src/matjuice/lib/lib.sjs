@@ -918,3 +918,25 @@ function mc_slice_set(m, values, indices) {
         m.mj_set(x, values[i++]);
     }
 }
+
+function mc_size(m, dim) {
+    if (dim === "undefined")
+        return m.mj_size();
+    else {
+        var s = m.mj_size();
+        if (dim > s.length)
+            return 1;
+        else
+            return s[dim-1];
+    }
+}
+
+
+function mc_any(m) {
+    if (typeof(m) === "number")
+        return m !== 0;
+    for (var i = 0; i < m.length; ++i)
+        if (m !== 0)
+            return 1;
+    return 0;
+}

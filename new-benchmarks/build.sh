@@ -47,7 +47,7 @@ for b in ${BENCHMARKS[@]}; do
     jsdrv=$basefile.js
     htmlfile=$basefile.html
     echo -n "$b... "
-    $MATJUICE $b $BUILD_DIR/$jsdrv "DOUBLE&1*1&REAL" > /dev/null
+    $MATJUICE $b $BUILD_DIR/$jsdrv "DOUBLE&1*1&REAL" > /dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "OK"
         echo $HTML_TEMPLATE > $BUILD_DIR/$htmlfile

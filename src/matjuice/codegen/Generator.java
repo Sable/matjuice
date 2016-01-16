@@ -287,17 +287,28 @@ public class Generator {
             return new StmtSequence(
                 new List<Stmt>(
                     new StmtCall(new Opt<Identifier>(new Identifier(dst)), "mc_slice_get", args)
-                    )
-                );
+                )
+            );
         }
         else {
+            ExprList indices = new ExprList();
+            for (ast.Expr index : tirStmt.getIndices()) {
+                indices.addValue(genExpr(index));
+            }
+
+            List<Expr> args = new List<>(indices);
+            return new StmtSequence(
+                new List<Stmt>(
+                    new StmtMethod(new Opt<Identifier>(new Identifier(dst)), "mj_get", new ExprId(src), args)
+                )
+            );
+            /*
             String linearizedIndex = newTemp();
             String arrayName = tirStmt.getArrayName().getID();
             StmtSequence seq = genIndexingComputation(
                 tirStmt, arrayName, tirStmt.getIndices(), linearizedIndex);
 
             // Bounds check
-            /*
             String lessThanZero = newTemp();
             String numElementClosure = newTemp();
             String numElements = newTemp();
@@ -310,9 +321,9 @@ public class Generator {
             seq.addStmt(new StmtIf(outOfBounds,
                 new StmtSequence(new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds"))))),
                 new StmtSequence()));
-            */
             seq.addStmt(new StmtGet(getSingleLhs(tirStmt), arrayName, new ExprId(linearizedIndex)));
             return seq;
+            */
         }
     }
 
@@ -340,12 +351,24 @@ public class Generator {
                 );
         }
         else {
+            ExprList indices = new ExprList();
+            for (ast.Expr index : tirStmt.getIndices()) {
+                indices.addValue(genExpr(index));
+            }
+
+            List<Expr> args = new List<>(indices, new ExprId(src));
+            return new StmtSequence(
+                new List<Stmt>(
+                    new StmtMethod(new Opt<Identifier>(), "mj_set", new ExprId(dst), args)
+                )
+            );
+
+            /*
             String linearizedIndex = newTemp();
             String arrayName = tirStmt.getArrayName().getID();
             StmtSequence seq = genIndexingComputation(tirStmt, arrayName, tirStmt.getIndices(), linearizedIndex);
 
             // Bounds check
-            /*
             String lessThanZero = newTemp();
             String numElementClosure = newTemp();
             String numElements = newTemp();
@@ -361,10 +384,10 @@ public class Generator {
                   greaterThanEnd,
                   new StmtSequence(new List<>(new StmtCall(new Opt<>(new Identifier(arrayName)), "mc_resize", new List<>(new ExprId(arrayName), new ExprId(linearizedIndex))))),
                   new StmtSequence()));
-            */
 
             seq.addStmt(new StmtSet(arrayName, new ExprId(linearizedIndex), tirStmt.getValueName().getID()));
             return seq;
+            */
         }
     }
 
