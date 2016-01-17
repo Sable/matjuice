@@ -284,46 +284,16 @@ public class Generator {
             }
 
             List<Expr> args = new List<>(new ExprId(src), indices);
-            return new StmtSequence(
-                new List<Stmt>(
-                    new StmtCall(new Opt<Identifier>(new Identifier(dst)), "mc_slice_get", args)
-                )
-            );
+            return new StmtCall(new Opt<Identifier>(new Identifier(dst)), "mc_slice_get", args);
         }
         else {
             ExprList indices = new ExprList();
             for (ast.Expr index : tirStmt.getIndices()) {
                 indices.addValue(genExpr(index));
             }
-
             List<Expr> args = new List<>(indices);
-            return new StmtSequence(
-                new List<Stmt>(
-                    new StmtMethod(new Opt<Identifier>(new Identifier(dst)), "mj_get", new ExprId(src), args)
-                )
-            );
-            /*
-            String linearizedIndex = newTemp();
-            String arrayName = tirStmt.getArrayName().getID();
-            StmtSequence seq = genIndexingComputation(
-                tirStmt, arrayName, tirStmt.getIndices(), linearizedIndex);
 
-            // Bounds check
-            String lessThanZero = newTemp();
-            String numElementClosure = newTemp();
-            String numElements = newTemp();
-            String greaterThanEnd = newTemp();
-            String outOfBounds = newTemp();
-            seq.addStmt(new StmtMethod(new Opt<>(new Identifier(numElements)), "mj_numel", new ExprId(arrayName), new List<>()));
-            seq.addStmt(new StmtBinop(lessThanZero, Binop.Lt, new ExprId(linearizedIndex), new ExprInt(0)));
-            seq.addStmt(new StmtBinop(greaterThanEnd, Binop.Ge, new ExprId(linearizedIndex), new ExprId(numElements)));
-            seq.addStmt(new StmtBinop(outOfBounds, Binop.Or, new ExprId(lessThanZero), new ExprId(greaterThanEnd)));
-            seq.addStmt(new StmtIf(outOfBounds,
-                new StmtSequence(new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds"))))),
-                new StmtSequence()));
-            seq.addStmt(new StmtGet(getSingleLhs(tirStmt), arrayName, new ExprId(linearizedIndex)));
-            return seq;
-            */
+            return new StmtMethod(new Opt<Identifier>(new Identifier(dst)), "mj_get", new ExprId(src), args);
         }
     }
 
@@ -335,59 +305,24 @@ public class Generator {
      * and generate a JavaScript StmtSet.
      */
     private Stmt genArraySetStmt(TIRArraySetStmt tirStmt) {
-        String dst = tirStmt.getArrayName().getID();
-        String src = tirStmt.getValueName().getID();
+        String arr = tirStmt.getArrayName().getID();
+        String val = tirStmt.getValueName().getID();
         if (isSlicingOperation(tirStmt, tirStmt.getIndices())) {
             ExprList indices = new ExprList();
             for (ast.Expr index : tirStmt.getIndices()) {
                 indices.addValue(genExpr(index));
             }
 
-            List<Expr> args = new List<>(new ExprId(dst), new ExprId(src), indices);
-            return new StmtSequence(
-                new List<Stmt>(
-                    new StmtCall(new Opt<Identifier>(), "mc_slice_set", args)
-                    )
-                );
+            List<Expr> args = new List<>(new ExprId(arr), new ExprId(val), indices);
+            return new StmtCall(new Opt<Identifier>(), "mc_slice_set", args);
         }
         else {
             ExprList indices = new ExprList();
             for (ast.Expr index : tirStmt.getIndices()) {
                 indices.addValue(genExpr(index));
             }
-
-            List<Expr> args = new List<>(indices, new ExprId(src));
-            return new StmtSequence(
-                new List<Stmt>(
-                    new StmtMethod(new Opt<Identifier>(), "mj_set", new ExprId(dst), args)
-                )
-            );
-
-            /*
-            String linearizedIndex = newTemp();
-            String arrayName = tirStmt.getArrayName().getID();
-            StmtSequence seq = genIndexingComputation(tirStmt, arrayName, tirStmt.getIndices(), linearizedIndex);
-
-            // Bounds check
-            String lessThanZero = newTemp();
-            String numElementClosure = newTemp();
-            String numElements = newTemp();
-            String greaterThanEnd = newTemp();
-            seq.addStmt(new StmtMethod(new Opt<>(new Identifier(numElements)), "mj_numel", new ExprId(arrayName), new List<>()));
-            seq.addStmt(new StmtBinop(lessThanZero, Binop.Lt, new ExprId(linearizedIndex), new ExprInt(0)));
-            seq.addStmt(new StmtIf(
-                  lessThanZero,
-                  new StmtSequence(new List<>(new StmtCall(new Opt<>(), "mc_error", new List<>(new ExprString("index out of bounds"))))),
-                  new StmtSequence()));
-            seq.addStmt(new StmtBinop(greaterThanEnd, Binop.Ge, new ExprId(linearizedIndex), new ExprId(numElements)));
-            seq.addStmt(new StmtIf(
-                  greaterThanEnd,
-                  new StmtSequence(new List<>(new StmtCall(new Opt<>(new Identifier(arrayName)), "mc_resize", new List<>(new ExprId(arrayName), new ExprId(linearizedIndex))))),
-                  new StmtSequence()));
-
-            seq.addStmt(new StmtSet(arrayName, new ExprId(linearizedIndex), tirStmt.getValueName().getID()));
-            return seq;
-            */
+            List<Expr> args = new List<>(new ExprId(val), indices);
+            return new StmtMethod(new Opt<Identifier>(), "mj_set", new ExprId(arr), args);
         }
     }
 

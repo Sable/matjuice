@@ -41,12 +41,11 @@ Float64Array.prototype.mj_dims = function() {
     return this._dims;
 }
 
-Float64Array.prototype.mj_get = function() {
-    return this[mj_compute_index(this, arguments)];
+Float64Array.prototype.mj_get = function(indices) {
+    return this[mj_compute_index(this, indices)];
 }
 
-Float64Array.prototype.mj_set = function(value) {
-    var indices = Array.prototype.slice.call(arguments, 1);
+Float64Array.prototype.mj_set = function(value, indices) {
     this[mj_compute_index(this, indices)] = value;
     return this;
 }
