@@ -830,15 +830,16 @@ function mc_slice_get(m, indices) {
     for (var i = 0; i < shape.length; ++i)
         numel *= shape[i];
 
-    var out = mj_create(new Float64Array(numel), shape);
+    var buf = new Float64Array(numel);
     var it = new MJSliceIterator(slice_indices);
     var i = 0;
 
     while ((x = it.next()) !== null) {
         var y = m.mj_get(x);
-        out[i++] = y;
+        buf[i++] = y;
     }
 
+    var out = mj_create(buf, shape);
     return out;
 }
 

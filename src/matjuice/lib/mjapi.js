@@ -85,7 +85,7 @@ Number.prototype.mj_get = function(indices) {
         return undefined;
 }
 
-Number.prototype.mj_set = function(indices, value) {
+Number.prototype.mj_set = function(value, indices) {
     var idx = mj_compute_index(this, indices);
     if (idx === 0)
         return value;
