@@ -8,13 +8,13 @@ function mc_error(msg) {
 macro elemwise {
     rule { ( $out:ident <= $M:ident $op $x:expr ) } => {
         for (var i = 1, N = $M.mj_numel(); i <= N; ++i) {
-            $out.mj_set([i], $M.mj_get([i]) $op $x);
+            $out.mj_set($M.mj_get(i) $op $x, i);
         }
     }
 
     rule { ( $out:ident <= $fn:expr $M:ident ) } => {
         for (var i = 1, N = $M.mj_numel(); i <= N; ++i) {
-            $out.mj_set([i], $fn($M.mj_get([i])));
+            $out.mj_set($fn($M.mj_get(i)), i);
         }
     }
 }
@@ -25,18 +25,18 @@ macro pairwise {
         var m2_length = $M2.mj_numel();
         if (m1_length !== m2_length) throw "array sizes differ";
         for (var i = 1, n = m1_length; i <= n; ++i) {
-            var x = $M1.mj_get([i]);
-            var y = $M2.mj_get([i]);
-            $out.mj_set([i], x $op y)
+            var x = $M1.mj_get(i);
+            var y = $M2.mj_get(i);
+            $out.mj_set(x $op y, i)
         }
     }
 
     rule { ( $out:ident <= $fn:expr $M1:ident $M2:ident ) } => {
         if ($M1.mj_numel() !== $M2.mj_numel()) throw "array sizes differ";
         for (var i = 1, n = $M1.mj_numel(); i <= n; ++i) {
-            var x = $M1.mj_get([i]);
-            var y = $M2.mj_get([i]);
-            $out.mj_set([i], $fn(x, y));
+            var x = $M1.mj_get(i);
+            var y = $M2.mj_get(i);
+            $out.mj_set($fn(x, y), i);
         }
     }
 }
@@ -129,7 +129,7 @@ function mc_mod_SS(x, y) {
 function mc_mod_SM(x, m) {
     var out = m.mj_clone();
     for (var i = 1; i <= m.mj_numel(); ++i) {
-        out.mj_set([i], mc_mod_SS(x, m.mj_get([i])));
+        out.mj_set(mc_mod_SS(x, m.mj_get(i)), i);
     }
     return out;
 }
@@ -137,7 +137,7 @@ function mc_mod_SM(x, m) {
 function mc_mod_MS(x, m) {
     var out = m.mj_clone();
     for (var i = 1; i <= m.mj_numel(); ++i) {
-        out.mj_set([i], mc_mod_SS(m.mj_get([i]), x));
+        out.mj_set(mc_mod_SS(m.mj_get(i), x), i);
     }
     return out;
 }
@@ -148,9 +148,9 @@ function mc_mod_MM(m1, m2) {
         throw "matrix sizes differ";
     }
     for (var i = 1; i <= m.mj_numel(); ++i) {
-        var a = m1.mj_get([i]);
-        var b = m2.mj_get([i]);
-        out.mj_set([i], mc_mod_SS(x, y));
+        var a = m1.mj_get(i);
+        var b = m2.mj_get(i);
+        out.mj_set(mc_mod_SS(x, y), i);
     }
     return out;
 }
@@ -188,9 +188,9 @@ function mc_mtimes_MM(m1, m2) {
         for (var col = 1; col <= m2_cols; ++col) {
             var acc = 0;
             for (var k = 1; k <= m2_rows; ++k) {
-                acc += mc_array_get(m1, [row, k]) * mc_array_get(m2, [k, col]);
+                acc += m1.mj_get(row, k) * m2.mj_get(k, col);
             }
-            out = mc_array_set(out, [row, col], acc);
+            out = out.mj_set(acc, row, col);
         }
     }
     return out;
@@ -478,7 +478,7 @@ function mc_uminus_S(x) {
 function mc_uminus_M(m) {
     var out = m.mj_clone();
     for (var i = 1; i <= m.mj_numel(); ++i)
-        out.mj_set([i], -out.mj_get([i]));
+        out.mj_set(-out.mj_get(i), i);
     return out;
 }
 
@@ -524,20 +524,6 @@ function mc_false() {
     return false;
 }
 
-
-function mc_array_get(m, indices) {
-    var value = m.mj_get(indices);
-    if (value === undefined)
-        throw "index out of bounds";
-    else
-        return value;
-}
-
-
-// TODO: handle array growth
-function mc_array_set(m, indices, value) {
-    return m.mj_set(indices, value);
-}
 
 
 // TODO: handle concatenating matrices of more than 2 dimensions
@@ -597,7 +583,7 @@ function mc_vertcat() {
     for (var col = 1; col <= num_cols; ++col) {
         for (var arg_id = 0; arg_id < arguments.length; ++arg_id) {
             for (var row = 1; row <= arguments[arg_id].mj_size()[0]; ++row) {
-                buf[offset] = arguments[arg_id].mj_get([row, col]);
+                buf[offset] = arguments[arg_id].mj_get(row, col);
                 offset++;
             }
         }
@@ -695,7 +681,7 @@ function mc_eye(rows, cols) {
     var buf = new Float64Array(rows * cols);
     var mat = mj_create(buf, [rows, cols]);
     for (var i = 1; i <= rows; ++i) {
-        mat.mj_set([i, i], 1);
+        mat.mj_set(1, i, i);
     }
     return mat;
 }
@@ -753,66 +739,13 @@ function mc_colon() {
     return mj_create(buf, [1, len]);
 }
 
-// function mc_array_slice_static_1(m, result_length, result_dims, dimensions, indices) {
-//     if (indices[0] === MC_COLON) indices[0] = mc_colon(1, result_length);
-//     var buf = new Float64Array(result_length);
-//     var k = 0;
-//     for (var i = 1; i <= indices[0].mj_numel(); ++i) {
-//         var index = indices[0].mj_get([i]);
-//         buf[k] = m.mj_get([index]);
-//         k++;
-//     }
-//     return mj_create(buf, dimensions);
-// }
-
-// function mc_array_slice_static_2(m, result_length, result_dims, dimensions, indices) {
-//     if (indices[0] === MC_COLON) indices[0] = mc_colon(1, dimensions[0]);
-//     if (indices[1] === MC_COLON) indices[1] = mc_colon(1, dimensions[1]);
-
-//     var buf = new Float64Array(result_length);
-//     var k = 0;
-//     for (var j = 1; j <= indices[1].mj_numel(); ++j) {
-//         for (var i = 1; i <= indices[0].mj_numel(); ++i) {
-//             var row = indices[0].mj_get([i]);
-//             var col = indices[1].mj_get([j]);
-//             buf[k] = m.mj_get([row, col]);
-//             k++;
-//         }
-//     }
-//     return mj_create(buf, dimensions);
-// }
-
-
-// function mc_array_slice_dynamic_1(m, dimensions, indices) {
-//     if (dimensions[0] === null) dimensions[0] = indices[0].mj_numel();
-//     if (dimensions[1] === null) dimensions[1] = indices[0].mj_numel();
-
-//     var result_length = 1;
-//     for (var i = 0; i < dimensions.length; ++i)
-//         result_length *= dimensions[i];
-
-//     return mc_array_slice_static_1(m, result_length, dimensions.length, dimensions, indices);
-// }
-
-
-// function mc_array_slice_dynamic_2(m, dimensions, indices) {
-//     if (dimensions[0] === null) dimensions[0] = indices[0].mj_numel();
-//     if (dimensions[1] === null) dimensions[1] = indices[1].mj_numel();
-
-//     var result_length = 1;
-//     for (var i = 0; i < dimensions.length; ++i)
-//         result_length *= dimensions[i];
-
-//     return mc_array_slice_static_2(m, result_length, dimensions.length, dimensions, indices);
-// }
 
 
 function mc_transpose(matrix) {
     var new_matrix = mc_zeros(matrix.mj_size()[1], matrix.mj_size()[0]);
     for (var i = 1; i <= matrix.mj_size()[0]; ++i) {
         for (var j = 1; j <= matrix.mj_size()[1]; ++j) {
-            mc_array_set(new_matrix, [j, i],
-                         mc_array_get(matrix, [i, j]));
+            new_matrix.mj_set(matrix.mj_get(i, j), j, i);
         }
     }
     return new_matrix;
@@ -839,7 +772,7 @@ function mc_mean(m) {
         var sum = 0;
         var n = m.mj_numel();
         for (var i = 1; i <= n; ++i)
-            sum += mc_array_get(m, [i]);
+            sum += m.mj_get(i);
         return sum / n;
     }
     throw "mc_mean: not implemented for matrices";
@@ -902,7 +835,7 @@ function mc_slice_get(m, indices) {
     var i = 0;
 
     while ((x = it.next()) !== null) {
-        var y = m.mj_get(x);
+        var y = m.mj_get.apply(m, x);
         out[i++] = y;
     }
 
@@ -915,7 +848,8 @@ function mc_slice_set(m, values, indices) {
     var it = new MJSliceIterator(slice_indices);
 
     while ((x = it.next()) !== null) {
-        m.mj_set(x, values[i++]);
+        x.unshift(values[i++]);
+        m.mj_set.apply(m, x);
     }
 }
 

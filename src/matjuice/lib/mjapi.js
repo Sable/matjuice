@@ -41,11 +41,12 @@ Float64Array.prototype.mj_dims = function() {
     return this._dims;
 }
 
-Float64Array.prototype.mj_get = function(indices) {
-    return this[mj_compute_index(this, indices)];
+Float64Array.prototype.mj_get = function() {
+    return this[mj_compute_index(this, arguments)];
 }
 
-Float64Array.prototype.mj_set = function(indices, value) {
+Float64Array.prototype.mj_set = function(value) {
+    var indices = Array.prototype.slice.call(arguments, 1);
     this[mj_compute_index(this, indices)] = value;
     return this;
 }
@@ -121,8 +122,9 @@ function mj_create(x, shape) {
 
 function mj_compute_index(x, indices) {
     var array_index = 0;
+    var stride = x.mj_stride();
     for (var i = 0, end = indices.length; i < end; ++i) {
-        array_index += (indices[i] - 1) * x.mj_stride()[i];
+        array_index += (indices[i] - 1) * stride[i];
     }
     return array_index;
 }
@@ -138,7 +140,7 @@ function mj_convert_to_slices(array, indices) {
             slice_indices[i] = indices[i];
         }
         else {
-            slice_indices[i] = [indices[i], indices[i]];
+            slice_indices[i] = [indices[i]];
         }
     }
     return slice_indices;
