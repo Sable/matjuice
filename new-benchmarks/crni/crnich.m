@@ -94,6 +94,7 @@ Va=-ones(1, n-1);
 Va(n-1)=0;
 Vc=-ones(1, n-1);
 Vc(1)=0;
+Vb=zeros(1, n);
 Vb(1)=0;
 Vb(n)=0;
 

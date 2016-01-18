@@ -55,6 +55,7 @@ for k=2:n,
     B(k)=B(k)-mult*B(k-1);
 end;
 
+X = zeros(1, n);
 X(n)=B(n)./D(n);
 
 for k=(n-1):-1:1,
