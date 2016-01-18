@@ -50,10 +50,10 @@ public class BuiltinRenamer {
      * functions.
      */
     private static String[] SPECIALIZED = {
-        "plus", "minus", "mtimes", "rem",
-        "mod", "mrdivide", "lt", "le", "gt", "ge", "eq", "ne", "length",
-        "sin", "uminus", "exp", "rdivide", "round", "sqrt", "mpower",
-        "floor", "ceil", "power", "abs"
+        "plus", "minus", "mtimes", "rem", "mod", "mrdivide",
+        "lt", "le", "gt", "ge", "eq", "ne", "length",
+        "sin", "cos", "tan", "uminus", "exp", "rdivide", "round", "sqrt",
+        "mpower", "floor", "ceil", "power", "abs", "fix", "and",
     };
 
     static {

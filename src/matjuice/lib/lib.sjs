@@ -874,3 +874,39 @@ function mc_any(m) {
             return 1;
     return 0;
 }
+
+function mc_fix_S(x) {
+    if (x < 0)
+        return Math.ceil(x);
+    else
+        return Math.floor(x);
+}
+
+function mc_fix_M(m) {
+    var out = m.mj_clone()
+    elemwise(out <= mc_fix_S m);
+    return out;
+}
+
+
+function mc_and_SS(x, y) {
+    return x && y;
+}
+
+function mc_and_SM(x, m) {
+    var out = m.mj_clone();
+    elemwise(out <= x && m);
+    return out;
+}
+
+function mc_and_MS(m, x) {
+    var out = m.mj_clone();
+    elemwise(out <= x && m);
+    return out;
+}
+
+function mc_and_MM(m1, m2) {
+    var out = m1.mj_clone();
+    pairwise(out <= m1 && m2);
+    return out;
+}
