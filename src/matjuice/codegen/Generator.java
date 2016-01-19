@@ -314,7 +314,19 @@ public class Generator {
             }
 
             List<Expr> args = new List<>(new ExprId(arr), new ExprId(val), indices);
-            return new StmtCall(new Opt<Identifier>(), "mc_slice_set", args);
+
+
+
+
+
+
+            BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, val);
+            if (bmv.getShape().isScalar()) {
+                return new StmtCall(new Opt<Identifier>(), "mc_slice_set_scalar", args);
+            }
+            else {
+                return new StmtCall(new Opt<Identifier>(), "mc_slice_set", args);
+            }
         }
         else {
             ExprList indices = new ExprList();

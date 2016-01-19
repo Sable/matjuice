@@ -196,6 +196,24 @@ function mc_mtimes_MM(m1, m2) {
     return out;
 }
 
+function mc_times_SS(a, b) {
+    return mc_mtimes_SS(a, b);
+}
+
+function mc_times_SM(a, b) {
+    return mc_mtimes_SM(a, b);
+}
+
+function mc_times_MS(a, b) {
+    return mc_mtimes_MS(a, b);
+}
+
+function mc_times_MM(a, b) {
+    var out = a.mj_clone();
+    pairwise(out <= a * b);
+    return out;
+}
+
 
 function mc_mrdivide_SS(x, y) {
     return x / y;
@@ -850,6 +868,15 @@ function mc_slice_set(m, values, indices) {
 
     while ((x = it.next()) !== null) {
         m.mj_set(values[i++], x);
+    }
+}
+
+function mc_slice_set_scalar(m, scalar, indices) {
+    var slice_indices = mj_convert_to_slices(m, indices);
+    var it = new MJSliceIterator(slice_indices);
+
+    while ((x = it.next()) !== null) {
+        m.mj_set(scalar, x);
     }
 }
 
