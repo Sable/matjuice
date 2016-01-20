@@ -143,6 +143,16 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         outFlowSets.put(stmt, copy(currentOutSet));
     }
 
+    @Override
+    public void caseTIRAssignLiteralStmt(TIRAssignLiteralStmt stmt) {
+        inFlowSets.put(stmt, copy(currentInSet));
+        currentOutSet = copy(currentInSet);
+
+        currentOutSet.remove(stmt.getTargetName().getID());
+
+        outFlowSets.put(stmt, copy(currentOutSet));
+    }
+
     public void caseMJCopyStmt(MJCopyStmt stmt) {
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
