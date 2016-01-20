@@ -1,5 +1,5 @@
-function[] = matmul_p(A,B,m,k,n)
-    
+function c = matmul_p(A,B,m,k,n)
+
 c=zeros(m,n);
 %!parfor
 for j = 1:n

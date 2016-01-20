@@ -1,3 +1,18 @@
+// Debugging helper functions
+function zeroIndex(xs) {
+    for (var i = 0; i < xs.length; ++i)
+        if (xs[i] === 0)
+            return i;
+    return -1;
+}
+
+function nanIndex(xs) {
+    for (var i = 0; i < xs.length; ++i)
+        if (isNaN(xs[i]))
+            return i;
+    return -1;
+}
+
 var MC_COLON = {};
 var MC_TICTOC = 0;
 
@@ -481,7 +496,7 @@ function mc_sqrt_S(x) {
     return Math.sqrt(x);
 }
 
-function mc_sqrt_M(x) {
+function mc_sqrt_M(m) {
     var out = m.mj_clone();
     elemwise(out <= Math.sqrt m);
     return out;
@@ -793,7 +808,17 @@ function mc_mean(m) {
             sum += m.mj_get([i]);
         return sum / n;
     }
-    throw "mc_mean: not implemented for matrices";
+
+    var rows = m.mj_size()[0];
+    var cols = m.mj_size()[1];
+    var out = mc_zeros(1, cols);
+    for (var c = 0; c < cols; ++c) {
+        for (var r = 0; r < rows; ++r) {
+            out[c] += m.mj_get([r+1, c+1]);
+        }
+        out[c] /= rows;
+    }
+    return out;
 }
 
 function mc_max(a, b) {
