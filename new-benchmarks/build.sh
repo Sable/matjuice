@@ -26,6 +26,7 @@ BENCHMARKS=(
     fft/drv_fft.m
     fiff/drv_fiff.m
     lgdr/drv_lgdr.m
+    make_change_dyn/drv_make_change.m
     matmul/drv_matmul_p.m
     mcpi/drv_mcpi_p.m
     nb1d/drv_nb1d.m
