@@ -376,7 +376,11 @@ public class Generator {
                 indices.addValue(genExpr(index));
             }
             List<Expr> args = new List<>(new ExprId(val), indices);
-            return new StmtMethod(new Opt<Identifier>(), "mj_set", new ExprId(arr), args);
+            return new StmtMethod(
+                new Opt<>(new Identifier(arr)),
+                "mj_set",
+                new ExprId(arr),
+                args);
         }
     }
 

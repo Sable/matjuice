@@ -15,7 +15,6 @@ endef
 export MATJUICE_SCRIPT
 
 JSAST_FILES	 := src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptPretty.jadd
-JSAST_EXPR_FILES := src/matjuice/jsast/JavascriptExpr.ast src/matjuice/jsast/JavascriptExprPretty.jadd
 PRETTY_FILES	 := src/matjuice/pretty/*.java
 SRC_FILES	 := src/matjuice/Main.java src/matjuice/analysis/*.java src/matjuice/transformer/*.java src/matjuice/codegen/*.java src/matjuice/utils/*.java
 
@@ -24,7 +23,6 @@ all:
 	mkdir -p $(GEN_DIR)
 	javac -g -d $(BUILD_DIR) $(PRETTY_FILES)
 	java -jar $(MCLAB_CORE_PATH)/lib/jastadd2-2.1.9/jastadd2.jar --o $(GEN_DIR) --package=matjuice.jsast $(JSAST_FILES)
-	java -jar $(MCLAB_CORE_PATH)/lib/jastadd2-2.1.9/jastadd2.jar --o $(GEN_DIR) --package=matjuice.jsast.expr $(JSAST_EXPR_FILES)
 	javac -g -d $(BUILD_DIR) -cp $(BUILD_DIR) $(GEN_DIR)/matjuice/jsast/*.java $(SRC_DIR)/matjuice/jsast/Binop.java $(SRC_DIR)/matjuice/jsast/Unop.java
 	javac -g -d $(BUILD_DIR) -cp $(BUILD_DIR):$(NATLAB_PATH)/McLabCore.jar $(SRC_FILES)
 	sjs -o $(GEN_DIR)/lib.js -r src/matjuice/lib/lib.sjs

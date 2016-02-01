@@ -159,8 +159,8 @@ final class CommandLineOptions {
     @Parameter(names={ "--rename-operators" }, arity=1, description="replace scalar functions with JavaScript operators")
     public boolean renameOperators = true;
 
-    @Parameter(names={ "--rename-array-indexing" }, arity=1, description="replace array_get/array_set with JavaScript indexing")
-    public boolean renameArrayIndexing= true;
+    @Parameter(names={ "--inline-indexing" }, arity=1, description="replace mj_get/mj_set with JavaScript indexing")
+    public boolean inlineIndexing= true;
 
     @Parameter(names={ "--enable-bounds-checking" }, arity=1, description="generate bounds checking code")
     public boolean enableBoundsChecking = true;
