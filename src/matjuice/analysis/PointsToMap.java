@@ -110,6 +110,10 @@ public class PointsToMap {
         return out;
     }
 
+    public String toString() {
+        return this.map.toString();
+    }
+
     @Override
     public boolean equals(Object other) {
         if (!(other instanceof PointsToMap)) {

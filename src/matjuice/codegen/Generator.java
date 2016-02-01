@@ -44,9 +44,12 @@ public class Generator {
 
     private Set<String> locals;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
+    private boolean doCopyInsertion;
 
-    public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis) {
+    public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
+      boolean doCopyInsertion) {
         this.analysis = analysis;
+        this.doCopyInsertion = doCopyInsertion;
     }
 
 
@@ -67,7 +70,9 @@ public class Generator {
         locals = LocalVars.apply(tirFunction);
 
         // Do copy insertion
-        performCopyInsertion(tirFunction);
+        if (doCopyInsertion) {
+            performCopyInsertion(tirFunction);
+        }
 
         // Do the statements first as some may create new locals.
         StmtSequence jsStmts = genStmtList(tirFunction.getStmtList());
@@ -75,6 +80,28 @@ public class Generator {
         List<Identifier> jsArgs = new List<>();
         for (ast.Name argName : tirFunction.getInputParamList()) {
             jsArgs.add(new Identifier(argName.getID()));
+        }
+
+        // Add copies for non-scalar parameters when not doing copy insertion
+        if (!doCopyInsertion) {
+            TIRStmt firstStmt = (TIRStmt) tirFunction.getStmtList().getChild(0);
+            for (ast.Name argName : tirFunction.getInputParamList()) {
+                String arg = argName.getID();
+                BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, firstStmt, arg);
+                if (!bmv.getShape().isScalar()) {
+                    List<Stmt> stmts = jsStmts.getStmtList();
+                    stmts.insertChild(
+                        new StmtMethod(
+                            new Opt<>(new Identifier(arg)),
+                            "mj_clone",
+                            new ExprId(arg),
+                            new List<>()
+                        ),
+                        0
+                    );
+                    jsStmts.setStmtList(stmts);
+                }
+            }
         }
 
         List<Identifier> jsLocals = new List<>();
@@ -167,7 +194,22 @@ public class Generator {
      */
     private Stmt genCopyStmt(TIRCopyStmt tirStmt) {
         String lhs = getSingleLhs(tirStmt);
-        return new StmtAssign(lhs, genExpr(tirStmt.getRHS()));
+        Expr rhsExpr = genExpr(tirStmt.getRHS());
+        if (doCopyInsertion) {
+            return new StmtAssign(lhs, rhsExpr);
+        } else {
+            BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, tirStmt.getSourceName().getID());
+            if (bmv.getShape().isScalar()) {
+                return new StmtAssign(lhs, rhsExpr);
+            } else {
+                return new StmtMethod(
+                    new Opt<>(new Identifier(lhs)),
+                    "mj_clone",
+                    rhsExpr,
+                    new List<>()
+                );
+            }
+        }
     }
 
     /**

@@ -108,7 +108,7 @@ public class Main {
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis = analysis.getNodeList().get(i).getAnalysis();
             TIRFunction matlabFunction = funcAnalysis.getTree();
 
-            Generator gen = new Generator(funcAnalysis);
+            Generator gen = new Generator(funcAnalysis, opts.doCopyInsertion);
             program.addFunction(gen.genFunction(matlabFunction));
         }
 
@@ -164,4 +164,7 @@ final class CommandLineOptions {
 
     @Parameter(names={ "--enable-bounds-checking" }, arity=1, description="generate bounds checking code")
     public boolean enableBoundsChecking = true;
+
+    @Parameter(names={ "--copy-insertion" }, arity=1, description="do points-to analysis and copy insertion")
+    public boolean doCopyInsertion = true;
 }

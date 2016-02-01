@@ -148,6 +148,10 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
         inFlowSets.put(stmt, copy(currentInSet));
         currentOutSet = copy(currentInSet);
 
+        String lhs = stmt.getVarName();
+        Set<TIRCopyStmt> aliasingStmtsOfLhs = currentOutSet.getAllAliasingStmts(lhs);
+        currentOutSet.removeAliasingStmts(aliasingStmtsOfLhs);
+
         currentOutSet.remove(stmt.getTargetName().getID());
 
         outFlowSets.put(stmt, copy(currentOutSet));
@@ -189,6 +193,11 @@ public class PointsToAnalysis extends TIRAbstractSimpleStructuralForwardAnalysis
                 for (int i = 0; i < astNode.getNumChild(); ++i) {
                     astNode.getChild(i).analyze(this);
                 }
+            }
+
+            @Override
+            public void caseStmt(ast.Stmt node) {
+                System.out.printf("MatJuice: %s\n        %s\n", node.getPrettyPrinted(), getOutFlowSets().get(node));
             }
         }
 
