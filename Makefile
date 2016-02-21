@@ -3,7 +3,7 @@ GEN_DIR := gen
 SRC_DIR := src
 MATJUICE_JAR := matjuice.jar
 MATJUICE_SH := matjuice.sh
-MCLAB_CORE_PATH ?= $(HOME)/workspace/mclab-core
+MCLAB_CORE_PATH ?= $(shell pwd)/deps/mclab-core
 NATLAB_PATH := $(MCLAB_CORE_PATH)/languages/Natlab
 
 define MATJUICE_SCRIPT
@@ -18,7 +18,7 @@ JSAST_FILES	 := src/matjuice/jsast/Javascript.ast src/matjuice/jsast/JavascriptP
 PRETTY_FILES	 := src/matjuice/pretty/*.java
 SRC_FILES	 := src/matjuice/Main.java src/matjuice/analysis/*.java src/matjuice/transformer/*.java src/matjuice/codegen/*.java src/matjuice/utils/*.java
 
-all:
+all: deps/mclab-core
 	mkdir -p $(BUILD_DIR)
 	mkdir -p $(GEN_DIR)
 	javac -g -d $(BUILD_DIR) $(PRETTY_FILES)
@@ -32,6 +32,9 @@ all:
 	@echo "$$MATJUICE_SCRIPT" > $(MATJUICE_SH)
 	chmod +x $(MATJUICE_SH)
 
+deps/mclab-core:
+	echo "Missing mclab-core dependency"
+	exit 1
 
 clean:
 	rm -rf $(BUILD_DIR) $(GEN_DIR) $(MATJUICE_JAR) $(MATJUICE_SH)
