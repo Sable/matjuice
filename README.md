@@ -20,7 +20,7 @@ be installed and [sweet.js](http://sweetjs.org/)
 
 ## Compiling MatJuice
 
-    Once sweet.js and mclab-core are installed, you can build MatJuice:
+Once sweet.js and mclab-core are installed, you can build MatJuice:
 
     $ make clean
     $ MCLAB_CORE_PATH=/path/to/mclab-core make
