@@ -139,35 +139,5 @@ public class CopyInsertion {
                 }
             }
         }
-
-        private void insertCopy(String variable, TIRStmt stmt) {
-            // Only add one copy per iteration.
-            if (addedCopy) {
-                return;
-            }
-            PointsToMap inSet = pta.getInFlowSets().get(stmt);
-            PointsToValue stmtPtv = inSet.get(variable);
-
-            // Iterate over the inset to find possible aliasing.
-            for (String varName: inSet.keySet()) {
-                PointsToValue ptv = inSet.get(varName);
-
-                // Don't compare against youself
-                if (variable.equals(varName))
-                    continue;
-
-                Set<MallocSite> commonMallocs = stmtPtv.commonMallocSites(ptv);
-                for (MallocSite m: commonMallocs) {
-                    Set<TIRCopyStmt> aliasingStmts = stmtPtv.getAliasingStmts(m);
-                    for (TIRCopyStmt copyStmt: aliasingStmts) {
-                        Ast.addRightSibling(copyStmt, Ast.makeCopyStmt(variable));
-                    }
-
-                    // Early return
-                    addedCopy = true;
-                    return;
-                }
-            }
-        }
     }
 }
