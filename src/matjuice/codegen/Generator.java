@@ -84,10 +84,9 @@ public class Generator {
 
         // Add copies for non-scalar parameters when not doing copy insertion
         if (!doCopyInsertion) {
-            TIRStmt firstStmt = (TIRStmt) tirFunction.getStmtList().getChild(0);
             for (ast.Name argName : tirFunction.getInputParamList()) {
                 String arg = argName.getID();
-                BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, firstStmt, arg);
+                BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirFunction, arg);
                 if (!bmv.getShape().isScalar()) {
                     List<Stmt> stmts = jsStmts.getStmtList();
                     stmts.insertChild(

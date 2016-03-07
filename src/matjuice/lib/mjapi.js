@@ -15,7 +15,10 @@
 
 
 
+var CLONE_COUNT = 0;
+
 Float64Array.prototype.mj_clone = function() {
+    CLONE_COUNT++;
     var newbuf = new Float64Array(this);
     var newshape = this.mj_size().slice(0);
     return mj_create(newbuf, newshape);
@@ -116,6 +119,11 @@ function mj_create(x, shape) {
     }
 
     return x;
+}
+
+function mj_new_from(matrix) {
+    var buf = new Float64Array(matrix.mj_numel());
+    return mj_create(buf, matrix.mj_size());
 }
 
 

@@ -63,21 +63,21 @@ function mc_plus_SS(x, y) {
 
 
 function mc_plus_SM(x, m) {
-    var out = m.mj_clone()
+    var out = mj_new_from(m);
     elemwise(out <= m + x);
     return out;
 }
 
 
 function mc_plus_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m + x);
     return out;
 }
 
 
 function mc_plus_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 + m2);
     return out;
 }
@@ -89,21 +89,21 @@ function mc_minus_SS(x, y) {
 
 
 function mc_minus_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m - x);
     return out;
 }
 
 
 function mc_minus_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m - x);
     return out;
 }
 
 
 function mc_minus_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 - m2);
     return out;
 }
@@ -116,21 +116,21 @@ function mc_rem_SS(x, y) {
 
 
 function mc_rem_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m % x);
     return out;
 }
 
 
 function mc_rem_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m % x);
     return out;
 }
 
 
 function mc_rem_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 % m2);
     return out;
 }
@@ -142,7 +142,7 @@ function mc_mod_SS(x, y) {
 }
 
 function mc_mod_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     for (var i = 1; i <= m.mj_numel(); ++i) {
         out.mj_set(mc_mod_SS(x, m.mj_get([i])), [i]);
     }
@@ -150,7 +150,7 @@ function mc_mod_SM(x, m) {
 }
 
 function mc_mod_MS(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     for (var i = 1; i <= m.mj_numel(); ++i) {
         out.mj_set(mc_mod_SS(m.mj_get([i]), x), [i]);
     }
@@ -158,7 +158,7 @@ function mc_mod_MS(x, m) {
 }
 
 function mc_mod_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     if (m1.mj_numel() !== m2.mj_numel()) {
         throw "matrix sizes differ";
     }
@@ -176,14 +176,14 @@ function mc_mtimes_SS(x, y) {
 
 
 function mc_mtimes_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m * x);
     return out;
 }
 
 
 function mc_mtimes_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m * x);
     return out;
 }
@@ -224,7 +224,7 @@ function mc_times_MS(a, b) {
 }
 
 function mc_times_MM(a, b) {
-    var out = a.mj_clone();
+    var out = mj_new_from(a);
     pairwise(out <= a * b);
     return out;
 }
@@ -236,14 +236,14 @@ function mc_mrdivide_SS(x, y) {
 
 
 function mc_mrdivide_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m / x);
     return out;
 }
 
 
 function mc_mrdivide_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m / x);
     return out;
 }
@@ -254,19 +254,19 @@ function mc_rdivide_SS(x, y) {
 }
 
 function mc_rdivide_MS(m, d) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m / d);
     return out;
 }
 
 function mc_rdivide_SM(d, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= d / m);
     return out;
 }
 
 function mc_rdivide_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 / m2);
     return out;
 }
@@ -281,21 +281,21 @@ function mc_lt_SS(x, y) {
 
 
 function mc_lt_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m < x);
     return out;
 }
 
 
 function mc_lt_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m < x);
     return out;
 }
 
 
 function mc_lt_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 < m2);
     return out;
 }
@@ -307,21 +307,21 @@ function mc_gt_SS(x, y) {
 
 
 function mc_gt_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m > x);
     return out;
 }
 
 
 function mc_gt_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m > x);
     return out;
 }
 
 
 function mc_gt_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 > m2);
     return out;
 }
@@ -332,21 +332,21 @@ function mc_le_SS(x, y) {
 
 
 function mc_le_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m <= x);
     return out;
 }
 
 
 function mc_le_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m <= x);
     return out;
 }
 
 
 function mc_le_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 <= m2);
     return out;
 }
@@ -358,21 +358,21 @@ function mc_ge_SS(x, y) {
 
 
 function mc_ge_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m >= x);
     return out;
 }
 
 
 function mc_ge_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m >= x);
     return out;
 }
 
 
 function mc_ge_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 >= m2);
     return out;
 }
@@ -384,21 +384,21 @@ function mc_eq_SS(x1, x2) {
 
 
 function mc_eq_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m === x);
     return out;
 }
 
 
 function mc_eq_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m === x);
     return out;
 }
 
 
 function mc_eq_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 === m2);
     return out;
 }
@@ -409,21 +409,21 @@ function mc_ne_SS(x1, x2) {
 
 
 function mc_ne_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m !== x);
     return out;
 }
 
 
 function mc_ne_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= m !== x);
     return out;
 }
 
 
 function mc_ne_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 !== m2);
     return out;
 }
@@ -447,7 +447,7 @@ function mc_floor_S(x) {
 }
 
 function mc_floor_M(m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= Math.floor m);
     return out;
 }
@@ -457,7 +457,7 @@ function mc_ceil_S(x) {
 }
 
 function mc_ceil_M(m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= Math.ceil m);
     return out;
 }
@@ -467,7 +467,7 @@ function mc_sin_S(x) {
 }
 
 function mc_sin_M(m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= Math.sin m);
     return out;
 }
@@ -477,7 +477,7 @@ function mc_cos_S(x) {
 }
 
 function mc_cos_M(m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= Math.cos m);
     return out;
 }
@@ -487,7 +487,7 @@ function mc_tan_S(x) {
 }
 
 function mc_tan_M(m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= Math.tan m);
     return out;
 }
@@ -497,7 +497,7 @@ function mc_sqrt_S(x) {
 }
 
 function mc_sqrt_M(m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= Math.sqrt m);
     return out;
 }
@@ -509,7 +509,7 @@ function mc_uminus_S(x) {
 
 
 function mc_uminus_M(m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     for (var i = 1; i <= m.mj_numel(); ++i)
         out.mj_set(-out.mj_get([i]), [i]);
     return out;
@@ -520,7 +520,7 @@ function mc_round_S(x) {
 }
 
 function mc_round_M(m) {
-    out = m.mj_clone();
+    out = mj_new_from(m);
     elemwise(out <= Math.round m);
     return m;
 }
@@ -535,14 +535,14 @@ function mc_power_SS(a, b) {
 }
 
 function mc_power_SM(a, b) {
-    var out = b.mj_clone();
+    var out = mj_new_from(b);
     for (var i = 0; i < b.mj_numel(); ++i)
         out[i] = Math.pow(a, out[i]);
     return out;
 }
 
 function mc_power_MS(a, b) {
-    var out = a.mj_clone();
+    var out = mj_new_from(a);
     for (var i = 0; i < a.mj_numel(); ++i) {
         out[i] = Math.pow(out[i], b);
     }
@@ -725,7 +725,7 @@ function mc_exp_S(x) {
 }
 
 function mc_exp_M(m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= Math.exp m);
     return out;
 }
@@ -735,7 +735,7 @@ function mc_abs_S(x) {
 }
 
 function mc_abs_M(m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= Math.abs m);
     return out;
 }
@@ -935,7 +935,7 @@ function mc_fix_S(x) {
 }
 
 function mc_fix_M(m) {
-    var out = m.mj_clone()
+    var out = mj_new_from(m);
     elemwise(out <= mc_fix_S m);
     return out;
 }
@@ -946,19 +946,19 @@ function mc_and_SS(x, y) {
 }
 
 function mc_and_SM(x, m) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= x && m);
     return out;
 }
 
 function mc_and_MS(m, x) {
-    var out = m.mj_clone();
+    var out = mj_new_from(m);
     elemwise(out <= x && m);
     return out;
 }
 
 function mc_and_MM(m1, m2) {
-    var out = m1.mj_clone();
+    var out = mj_new_from(m1);
     pairwise(out <= m1 && m2);
     return out;
 }

@@ -18,7 +18,7 @@ package matjuice.utils;
 
 import matjuice.jsast.*;
 
-import natlab.tame.tir.TIRStmt;
+import natlab.tame.tir.TIRNode;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
@@ -26,13 +26,15 @@ import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
 public class Utils {
     public static BasicMatrixValue getBasicMatrixValue(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
-      TIRStmt stmt, String variable) {
-        if (stmt == null)
+      TIRNode tirNode, String variable) {
+        if (tirNode == null)
             return null;
+
+        System.out.println(analysis.getOutFlowSets());
 
         AggrValue<BasicMatrixValue> val = analysis
           .getOutFlowSets()
-          .get(stmt)
+          .get(tirNode)
           .get(variable)
           .getSingleton();
         if (val instanceof BasicMatrixValue)
