@@ -30,8 +30,6 @@ public class Utils {
         if (tirNode == null)
             return null;
 
-        System.out.println(analysis.getOutFlowSets());
-
         AggrValue<BasicMatrixValue> val = analysis
           .getOutFlowSets()
           .get(tirNode)
