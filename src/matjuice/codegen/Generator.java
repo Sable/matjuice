@@ -133,7 +133,6 @@ public class Generator {
         do {
             pta = new PointsToAnalysis(tirFunction);
             tirFunction.tirAnalyze(pta);
-            pta.print(tirFunction);
         } while (CopyInsertion.apply(tirFunction, pta));
     }
 
