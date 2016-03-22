@@ -57,7 +57,8 @@ def main():
         with open(os.path.join(NOCI, html_file), "w") as f:
             f.write(HTML_TEMPLATE % js_file)
         with open(os.path.join(NOCI, js_file), "a") as f:
-            f.write("%s(%d); console.log(CLONE_COUNT);\n" % (drv_func, scale))
+            f.write("%s(%d);" % (drv_func, scale))
+            f.write("console.log(CLONE_COUNT, CLONE_LENGTHS, CLONE_LENGTHS / CLONE_COUNT);\n")
 
         # With copy insertion
         subprocess.call(["../matjuice.sh", drv_file, os.path.join(CI, js_file), "DOUBLE&1*1&REAL"],
@@ -65,7 +66,8 @@ def main():
         with open(os.path.join(CI, html_file), "w") as f:
             f.write(HTML_TEMPLATE % js_file)
         with open(os.path.join(CI, js_file), "a") as f:
-            f.write("%s(%d); console.log(CLONE_COUNT);\n" % (drv_func, scale))
+            f.write("%s(%d);" % (drv_func, scale))
+            f.write("console.log(CLONE_COUNT, CLONE_LENGTHS, CLONE_LENGTHS / CLONE_COUNT);\n")
 
         print "done"
 

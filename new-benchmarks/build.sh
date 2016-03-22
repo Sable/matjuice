@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MATJUICE=../matjuice.sh
-BUILD_DIR=_BUILD
+BUILD_DIR=_BUILD_CI
 
 
 HTML_TEMPLATE=`cat <<EOF
@@ -41,7 +41,7 @@ for b in ${BENCHMARKS[@]}; do
     jsdrv=$basefile.js
     htmlfile=$basefile.html
     echo -n "$b... "
-    $MATJUICE --copy-insertion=false $b $BUILD_DIR/$jsdrv "DOUBLE&1*1&REAL" > /dev/null 2>&1
+    $MATJUICE  $b $BUILD_DIR/$jsdrv "DOUBLE&1*1&REAL" > /dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "OK"
         echo $HTML_TEMPLATE > $BUILD_DIR/$htmlfile

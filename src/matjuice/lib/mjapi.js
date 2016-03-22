@@ -14,11 +14,12 @@
  */
 
 
-
+var CLONE_LENGTHS = 0;
 var CLONE_COUNT = 0;
 
 Float64Array.prototype.mj_clone = function() {
     CLONE_COUNT++;
+    CLONE_LENGTHS += this.length;
     var newbuf = new Float64Array(this);
     var newshape = this.mj_size().slice(0);
     return mj_create(newbuf, newshape);
