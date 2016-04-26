@@ -29,6 +29,7 @@ import matjuice.transformer.ParameterCopyTransformer;
 import matjuice.transformer.CopyInsertion;
 import matjuice.transformer.MJCopyStmt;
 import matjuice.utils.Utils;
+import matjuice.pretty.Pretty;
 
 import natlab.utils.NodeFinder;
 import natlab.tame.tir.*;
@@ -331,9 +332,12 @@ public class Generator {
             for (ast.Expr index : tirStmt.getIndices()) {
                 indices.addValue(genExpr(index));
             }
+            Expr indexingExpr = computeIndex(tirStmt, src, indices);
+            return new StmtGet(dst, src, indexingExpr);
+            /*
             List<Expr> args = new List<>(indices);
-
             return new StmtMethod(new Opt<Identifier>(new Identifier(dst)), "mj_get", new ExprId(src), args);
+            */
         }
     }
 
@@ -645,5 +649,48 @@ public class Generator {
         else {
             return LoopDirection.Unknown;
         }
+    }
+
+    private Integer[] computeStride(TIRNode node, String arrayName) {
+        BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, node, arrayName);
+        int numDimensions = bmv.getShape().getDimensions().size();
+        Integer[] stride = new Integer[numDimensions];
+        stride[0] = 1;
+
+        for (int i = 1; i < numDimensions; ++i) {
+            DimValue dv = bmv.getShape().getDimensions().get(i-1);
+            if (dv.hasIntValue()) {
+                stride[i] = stride[i-1] * dv.getIntValue();
+            } else {
+                break;
+            }
+        }
+
+        return stride;
+    }
+
+    private Expr computeIndex(TIRNode node, String arrayName, ExprList indices) {
+        BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, node, arrayName);
+        // Special case: row or column vector, indexing with only one expression.
+        if ((bmv.getShape().isRowVector() || bmv.getShape().isColVector()) && indices.getNumValue() == 1) {
+            Expr idx = indices.getValue(0);
+            return new ExprOp(Binop.Sub, idx, new ExprInt(1));
+        }
+        Integer[] stride = computeStride(node, arrayName);
+        Expr indexExp = new ExprOp(Binop.Sub, indices.getValue(0), new ExprInt(1));
+        for (int i = 1; i < indices.getNumValue(); ++i) {
+            Expr strideExp;
+            if (stride[i] != null) {
+                strideExp = new ExprInt(stride[i]);
+            } else {
+                strideExp = new ExprAny(String.format("%s.mj_stride()[%d]", arrayName, i));
+            }
+            indexExp = new ExprOp(
+                Binop.Add,
+                indexExp,
+                new ExprOp(Binop.Mul, strideExp, new ExprOp(Binop.Sub, indices.getValue(i), new ExprInt(1)))
+            );
+        }
+        return indexExp;
     }
 }

@@ -44,3 +44,5 @@ ExprFloat:Expr    ::= <Value:Double>;  // 3.141592
 ExprId:Expr       ::= <Value:String>;  // id
 ExprString:Expr   ::= <Value:String>;  // "Hello"
 ExprList:Expr     ::= Value:Expr*;     // ["hello", [3, 0.1415], id]
+ExprOp:Expr       ::= <Op:matjuice.jsast.Binop> Lhs:Expr Rhs:Expr;
+ExprAny:Expr      ::= <Expr:String>;

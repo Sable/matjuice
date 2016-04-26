@@ -297,4 +297,20 @@ aspect PrettyPrinter {
             Pretty.separateBy(Pretty.text(", "), ppExprs)
             );
     }
+
+    public PrettyBase ExprOp.pp() {
+        return Pretty.wrapped(
+            Pretty.text("("),
+            Pretty.text(")"),
+            Pretty.concat(
+                this.getLhs().pp(),
+                this.getOp().pp(),
+                this.getRhs().pp()
+            )
+        );
+    }
+
+    public PrettyBase ExprAny.pp() {
+        return Pretty.text(this.getExpr());
+    }
 }
