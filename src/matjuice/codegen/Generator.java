@@ -359,11 +359,6 @@ public class Generator {
 
             List<Expr> args = new List<>(new ExprId(arr), new ExprId(val), indices);
 
-
-
-
-
-
             BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, val);
             if (bmv.getShape().isScalar()) {
                 return new StmtCall(new Opt<Identifier>(), "mc_slice_set_scalar", args);
@@ -377,12 +372,16 @@ public class Generator {
             for (ast.Expr index : tirStmt.getIndices()) {
                 indices.addValue(genExpr(index));
             }
+            Expr indexExp = computeIndex(tirStmt, arr, indices);
+            return new StmtSet(arr, indexExp, val);
+            /*
             List<Expr> args = new List<>(new ExprId(val), indices);
             return new StmtMethod(
                 new Opt<>(new Identifier(arr)),
                 "mj_set",
                 new ExprId(arr),
                 args);
+            */
         }
     }
 
