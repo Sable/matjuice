@@ -206,3 +206,13 @@ function MJSliceIterator(indices) {
         return result;
     }
 }
+
+function mj_forall(arr) {
+    for (var i = 0; i < arr.length; ++i) {
+        if (arr.mj_get([i]) === 0) {
+            return false;
+        }
+    }
+
+    return true;
+}

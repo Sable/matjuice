@@ -391,10 +391,31 @@ public class Generator {
      * contains 0 statements.
      */
     private Stmt genIfStmt(TIRIfStmt tirStmt) {
-        return new StmtIf(
-            tirStmt.getConditionVarName().getID(),
-            genStmtList(tirStmt.getIfStatements()),
-            genStmtList(tirStmt.getElseStatements()));
+        String condVar = tirStmt.getConditionVarName().getID();
+        BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, condVar);
+        boolean isScalar = bmv.getShape().isScalar();
+        if (isScalar) {
+            return new StmtIf(
+                condVar,
+                genStmtList(tirStmt.getIfStatements()),
+                genStmtList(tirStmt.getElseStatements()));
+        } else {
+            String temp = newTemp();
+            StmtSequence seq = new StmtSequence();
+            seq.addStmt(new StmtCall(
+                  new Opt<>(new Identifier(temp)),
+                  "mj_forall",
+                  new List<>(new ExprId(condVar))
+              )
+            );
+            seq.addStmt(new StmtIf(
+                  temp,
+                  genStmtList(tirStmt.getIfStatements()),
+                  genStmtList(tirStmt.getElseStatements())
+              )
+            );
+            return seq;
+        }
     }
 
     /**
