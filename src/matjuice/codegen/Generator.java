@@ -422,9 +422,14 @@ public class Generator {
      * Transform a MATLAB while statement into JavaScript.
      */
     private Stmt genWhileStmt(TIRWhileStmt tirStmt) {
+        String condVar = tirStmt.getCondition().getName().getID();
+        BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, condVar);
+        boolean isScalar = bmv.getShape().isScalar();
+        System.out.printf("VFB: [%s]\n", bmv.getShape());
         return new StmtWhile(
-            genExpr(tirStmt.getCondition()),
-            genStmtList(tirStmt.getStatements()));
+            isScalar ? new ExprId(condVar) : new ExprAny(String.format("mc_forall(%s)", condVar)),
+            genStmtList(tirStmt.getStatements())
+        );
     }
 
     /**
