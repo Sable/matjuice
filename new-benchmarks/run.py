@@ -41,10 +41,10 @@ for b in BENCHMARKS:
             t2 = time.time()
             times[i] = t2 - t1
             lines = output.split()
-            copy_counts = int(lines[-1])
+            copy_counts = float(lines[-1])
         LINE.append(np.round(np.mean(times), decimals=2))
         LINE.append(np.round(np.std(times), decimals=2))
         LINE.append(copy_counts)
         os.chdir("..")
 
-    print(r"%s & %.2f $\pm$ %.2f & %d & %.2f $\pm$ %.2f & %d \\" % tuple(LINE))
+    print(r"%s & %.2f $\pm$ %.2f & %f & %.2f $\pm$ %.2f & %f \\" % tuple(LINE))
