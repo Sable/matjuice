@@ -91,6 +91,13 @@ public class Main {
             shapeDesc[i-2] = opts.arguments.get(i);
         }
 
+        // Compilation time
+        long startTime = 0;     // start time of the whole compilation
+        long endTime = 0;       // end time of the whole compilation
+        double totalPtCiTime = 0.0; // total time of PT/CI time
+
+        startTime = System.currentTimeMillis();
+
         GenericFile gfile = GenericFile.create(matlabFile);
         if (!gfile.exists()) {
             System.err.printf("Error: file '%s' does not exist.%n", gfile.getName());
@@ -110,7 +117,18 @@ public class Main {
 
             Generator gen = new Generator(funcAnalysis, opts.doCopyInsertion);
             program.addFunction(gen.genFunction(matlabFunction));
+            totalPtCiTime += gen.getCopyInsertionTime();
         }
+        endTime = System.currentTimeMillis();
+
+        // End of compilation
+        if (opts.timeCompilation) {
+            double total = (endTime - startTime) / 1000.0;
+            System.out.printf("MATJUICE: PT/CI compile time: %.3f secs\n", totalPtCiTime);
+            System.out.printf("MATJUICE: Total compile time: %.3f secs\n", total);
+            System.out.printf("MATJUICE: Ratio PT/CI:Total : %.3f\n", totalPtCiTime / total);
+        }
+
 
         // Write out the JavaScript program.
         // TODO: Better error messages.
@@ -167,4 +185,7 @@ final class CommandLineOptions {
 
     @Parameter(names={ "--copy-insertion" }, arity=1, description="do points-to analysis and copy insertion")
     public boolean doCopyInsertion = true;
+
+    @Parameter(names={ "--time" }, arity=1, description="time compilation time")
+    public boolean timeCompilation = false;
 }

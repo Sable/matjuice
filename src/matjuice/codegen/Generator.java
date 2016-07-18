@@ -46,6 +46,8 @@ public class Generator {
     private Set<String> locals;
     private IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis;
     private boolean doCopyInsertion;
+    private long startTime = 0;
+    private long endTime = 0;
 
     public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
       boolean doCopyInsertion) {
@@ -53,7 +55,9 @@ public class Generator {
         this.doCopyInsertion = doCopyInsertion;
     }
 
-
+    public double getCopyInsertionTime() {
+        return (endTime - startTime) / 1000.0;
+    }
 
     /**
      * Transform a Tamer function into a JavaScript function.
@@ -72,7 +76,9 @@ public class Generator {
 
         // Do copy insertion
         if (doCopyInsertion) {
+            startTime = System.currentTimeMillis();
             performCopyInsertion(tirFunction);
+            endTime = System.currentTimeMillis();
         }
 
         // Do the statements first as some may create new locals.
