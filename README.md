@@ -10,8 +10,8 @@ code into JavaScript code.
 MatJuice requires [mclab-core](https://github.com/Sable/mclab-core) to
 be installed and [sweet.js](http://sweetjs.org/)
 
-    # Installing sweet.js
-    $ npm install -g sweet.js
+    # Installing sweet.js in the local node_modules
+    $ npm install
 
     # Installing mclab-core
     $ git clone https://github.com/Sable/mclab-core.git

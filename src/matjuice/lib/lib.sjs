@@ -906,9 +906,10 @@ function mc_slice_set_scalar(m, scalar, indices) {
 }
 
 function mc_size(m, dim) {
-    if (dim === "undefined")
-        return m.mj_size();
-    else {
+    if (dim === undefined) {
+        var shape = m.mj_size();   
+        return mj_create(new Float64Array(shape), [1, shape.length]);
+    } else {
         var s = m.mj_size();
         if (dim > s.length)
             return 1;

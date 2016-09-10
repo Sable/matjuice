@@ -25,7 +25,7 @@ all:
 	java -jar $(MCLAB_CORE_PATH)/lib/jastadd2-2.1.9/jastadd2.jar --o $(GEN_DIR) --package=matjuice.jsast $(JSAST_FILES)
 	javac -g -d $(BUILD_DIR) -cp $(BUILD_DIR) $(GEN_DIR)/matjuice/jsast/*.java $(SRC_DIR)/matjuice/jsast/Binop.java $(SRC_DIR)/matjuice/jsast/Unop.java
 	javac -g -d $(BUILD_DIR) -cp $(BUILD_DIR):$(NATLAB_PATH)/McLabCore.jar $(SRC_FILES)
-	sjs -o $(GEN_DIR)/lib.js -r src/matjuice/lib/lib.sjs
+	node_modules/sweet.js/bin/sjs -o $(GEN_DIR)/lib.js src/matjuice/lib/lib.sjs --readable-names
 	jar cf $(MATJUICE_JAR) -C bin matjuice
 	jar uf $(MATJUICE_JAR) -C gen lib.js
 	jar uf $(MATJUICE_JAR) -C src/matjuice/lib/ mjapi.js
