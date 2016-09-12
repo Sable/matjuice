@@ -730,6 +730,16 @@ function mc_exp_M(m) {
     return out;
 }
 
+function mc_log_S(x) {
+    return Math.log(x);
+}
+
+function mc_log_M(m) {
+    var out = mj_new_from(m);
+    elemwise(out <= Math.log m);
+    return out;
+}
+
 function mc_abs_S(x) {
     return Math.abs(x);
 }
