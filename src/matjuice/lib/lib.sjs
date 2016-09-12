@@ -973,3 +973,24 @@ function mc_and_MM(m1, m2) {
     pairwise(out <= m1 && m2);
     return out;
 }
+
+function mc_sum(m, dim) {
+    if (typeof(m) === "number") {
+        return m
+    } else if (m.mj_dims() !== 2) {
+        throw new Error("Unimplemented 'sum' operator for n-dimensional arrays");
+    } else if ((m.mj_size()[0] == 1 || m.mj_size()[1] == 1) && dim === undefined) {
+        var sum = 0;
+        var n = m.mj_numel();
+        for (var i = 1; i <= n; ++i)
+            sum += m.mj_get([i]);
+        return sum;
+    } else {
+        if (dim < 0) {
+            throw new Error(
+                'Error using sum\n' + 
+                'Dimension argument must be a positive integer scalar within indexing range.');
+        } 
+        throw new Error('sum: Unimplemented for matrices');
+    }
+}
