@@ -1,0 +1,20 @@
+{
+    "type": "compiler",
+    "short-name":"matjuice",
+    "supported-languages":[
+        "matlab"
+    ],
+    "target-languages":[
+        "js"
+    ],
+    "runner-name":"runner.js",
+    "commands": [
+        {   "executable-path": { "file": "./matjuice.sh" },
+            "options":[
+                { "config": "/implementation/runner-source-file" },
+                { "config": "/compiler/runner-name" },
+                { "config": "/implementation/runner-argument-types"}
+            ]
+        }
+    ]
+}

@@ -15,6 +15,9 @@ function nanIndex(xs) {
 
 var MC_COLON = {};
 var MC_TICTOC = 0;
+if (typeof performance === "undefined") {
+    var performance = Date;
+}
 
 function mc_error(msg) {
     throw msg;
@@ -841,11 +844,11 @@ function mc_min(a, b) {
 
 
 function mc_tic() {
-    MC_TICTOC = Date.now();
+    MC_TICTOC = performance.now();
 }
 
 function mc_toc() {
-    var elapsed = Date.now() - MC_TICTOC;
+    var elapsed = performance.now() - MC_TICTOC;
     return elapsed / 1000;
 }
 
