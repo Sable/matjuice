@@ -3,7 +3,7 @@ GEN_DIR := gen
 SRC_DIR := src
 MATJUICE_JAR := matjuice.jar
 MATJUICE_SH := matjuice.sh
-MCLAB_CORE_PATH ?= $(HOME)/workspace/mclab-core
+MCLAB_CORE_PATH ?= $(HOME)/Documents/Recherche/mclab-core/
 NATLAB_PATH := $(MCLAB_CORE_PATH)/languages/Natlab
 
 define MATJUICE_SCRIPT

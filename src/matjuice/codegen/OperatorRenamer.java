@@ -39,7 +39,7 @@ public class OperatorRenamer {
             for (ast.Expr arg : tirStmt.getArguments()) {
                 String argVar = ((ast.NameExpr) arg).getName().getID();
                 BasicMatrixValue bmv = Utils.getBasicMatrixValue(analysis, tirStmt, argVar);
-                if (!bmv.getShape().isScalar()) {
+                if (bmv == null || bmv.getShape() == null || !bmv.getShape().isScalar()) {
                     return false;
                 }
             }

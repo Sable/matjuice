@@ -994,3 +994,64 @@ function mc_sum(m, dim) {
         throw new Error('sum: Unimplemented for matrices');
     }
 }
+
+function mc_assert(bool) {
+    if (typeof bool !== 'number' && typeof bool !== 'boolean') {
+        throw new Error('Error using assert\n' + 
+        'The condition input argument must be a scalar logical.');
+    }
+    if (!bool) {
+        throw new Error('assertion failed');
+    }
+}
+
+function mc_isequal(v1, v2) {
+    if (typeof v1 !== typeof v2) {
+        return false;
+    } else if (typeof v1 === 'number') {
+        return v1 === v2; 
+    } else if (!(v1 instanceof Float64Array && v2 instanceof Float64Array)) {
+        throw new Error ('Unsupported isequal method for non-matrix ' + v1 + ' or ' + v2);
+    } else {
+        if (v1.mj_dims() !== v2.mj_dims()) {
+            return false;
+        } else if (v1.mj_numel() !== v2.mj_numel()) {
+            return false;
+        } else {
+            var v1size = v1.mj_size();
+            var v2size = v2.mj_size();
+            for (var d = 0; d < v1.mj_dims(); ++d) {
+                if (v1size[d] !== v2size[d]) {
+                    return false;
+                }
+            }
+
+            for (var i = 1; i <= v1.mj_numel(); ++i) {
+                if (v1.mj_get([i]) !== v2.mj_get([i])) {
+                    return false; 
+                }
+            }
+
+            return true;
+        }
+    }
+}
+
+function mc_not(v) {
+    if (typeof v == 'boolean') {
+        return !v;
+    } else if (typeof v === 'number') {
+        if (v === 0) {
+            return 1;
+        } else {
+            return 0;
+        }
+    } else if (v instanceof Float64Array) {
+        var not_array = mj_new_from(v); 
+        for (var i = 1; i < not_array.mj_numel(); ++i) {
+            not_array.mj_set([i], mc_not(not_array.mj_get([i])));
+        }
+    } else {
+        throw new Error("Unimplemented 'not' operation for " + v);
+    }
+}
