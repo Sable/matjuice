@@ -34,6 +34,14 @@ macro elemwise {
     }
 }
 
+macro elemwise2 {
+    rule { ( $out:ident <= $x:ident $op $M:ident ) } => {
+        for (var i = 1, N = $M.mj_numel(); i <= N; ++i) {
+            $out.mj_set($x $op $M.mj_get([i]), [i]);
+        }
+    }
+}
+
 macro pairwise {
     rule { ( $out:ident <= $M1:ident $op $M2:ident ) } => {
         var m1_length = $M1.mj_numel();
@@ -90,7 +98,7 @@ function mc_minus_SS(x, y) {
 
 function mc_minus_SM(x, m) {
     var out = mj_new_from(m);
-    elemwise(out <= m - x);
+    elemwise2(out <= x - m);
     return out;
 }
 
