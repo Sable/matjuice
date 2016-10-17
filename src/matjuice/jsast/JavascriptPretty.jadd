@@ -275,7 +275,7 @@ aspect PrettyPrinter {
     }
 
     public PrettyBase ExprFloat.pp() {
-        return Pretty.text(this.getValue().toString());
+        return Pretty.text(String.format("%.20g", this.getValue()));
     }
 
     public PrettyBase ExprId.pp() {
