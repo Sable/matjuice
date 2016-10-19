@@ -17,24 +17,20 @@
 package matjuice.codegen;
 
 import java.util.Set;
-import java.util.HashSet;
 import java.util.Map;
 
 import matjuice.jsast.*;
 import matjuice.analysis.ParameterCopyAnalysis;
 import matjuice.analysis.LocalVars;
 import matjuice.analysis.PointsToAnalysis;
-import matjuice.analysis.PointsToValue;
 import matjuice.transformer.ParameterCopyTransformer;
 import matjuice.transformer.CopyInsertion;
 import matjuice.transformer.MJCopyStmt;
 import matjuice.utils.Utils;
-import matjuice.pretty.Pretty;
 
 import natlab.utils.NodeFinder;
 import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
-import natlab.tame.valueanalysis.ValueAnalysis;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 import natlab.tame.valueanalysis.components.shape.DimValue;
@@ -48,6 +44,7 @@ public class Generator {
     private boolean doCopyInsertion;
     private long startTime = 0;
     private long endTime = 0;
+    private boolean verbose = true;
 
     public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
       boolean doCopyInsertion) {
@@ -68,6 +65,11 @@ public class Generator {
      *   the end of the function
      */
     public Function genFunction(TIRFunction tirFunction) {
+        String functionName = FunctionRenamer.getFunctionName(tirFunction, analysis);
+        if (verbose) {
+            System.out.println("genFunction(" + functionName + ")");
+        }
+
         // Add an explicit return at the end of the function
         addReturn(tirFunction);
 
@@ -115,7 +117,7 @@ public class Generator {
             jsLocals.add(new Identifier(localName));
         }
 
-        return new Function(tirFunction.getName().getID(), jsArgs, jsLocals, jsStmts);
+        return new Function(functionName, jsArgs, jsLocals, jsStmts);
     }
 
     private static void addReturn(TIRFunction tirFunction) {
@@ -267,7 +269,7 @@ public class Generator {
             args.add(genExpr(expr));
         }
 
-        String functionName = BuiltinRenamer.getFunctionName(tirStmt, analysis);
+        String functionName = FunctionRenamer.getFunctionName(tirStmt, analysis);
 
         if (tirStmt.isAssignToVar()) {
             return new StmtCall(

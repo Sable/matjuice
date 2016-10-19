@@ -27,13 +27,16 @@ import matjuice.pretty.Pretty;
 import matjuice.codegen.Generator;
 import matjuice.jsast.Program;
 
+import matjuice.utils.Utils;
 import natlab.tame.BasicTamerTool;
 import natlab.tame.tir.*;
 import natlab.tame.valueanalysis.IntraproceduralValueAnalysis;
 import natlab.tame.valueanalysis.ValueAnalysis;
+import natlab.tame.valueanalysis.value.Args;
 import natlab.tame.valueanalysis.aggrvalue.AggrValue;
 import natlab.tame.valueanalysis.basicmatrix.BasicMatrixValue;
 
+import natlab.tame.valueanalysis.components.shape.Shape;
 import natlab.toolkits.analysis.core.Def;
 import natlab.toolkits.analysis.core.ReachingDefs;
 import natlab.toolkits.analysis.core.UseDefDefUseChain;
@@ -67,7 +70,23 @@ public class Main {
         }
     }
 
+    public static String toSuffix(Args<AggrValue<BasicMatrixValue>> args) {
+        String suffix = "";
+        Iterator var2 = args.iterator();
+
+        while(var2.hasNext()) {
+            BasicMatrixValue bmv = (BasicMatrixValue)var2.next();
+            if (bmv.hasShape() && bmv.getShape().isScalar())
+                suffix += "S";
+            else
+                suffix += "M";
+        }
+
+        return suffix;
+    }
+
     public static void main(String[] args) {
+        boolean verbose = true;
         CommandLineOptions opts = new CommandLineOptions();
         JCommander jcommander = new JCommander(opts, args);
         jcommander.setProgramName("matjuice");
@@ -107,17 +126,25 @@ public class Main {
         FileEnvironment fenv = new FileEnvironment(gfile);
         ValueAnalysis<AggrValue<BasicMatrixValue>> analysis = BasicTamerTool.analyze(shapeDesc, fenv);
 
-
+        Set generated = new HashSet<String>();
         Program program = new Program();
 
         int numFunctions = analysis.getNodeList().size();
         for (int i = 0; i < numFunctions; ++i) {
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis = analysis.getNodeList().get(i).getAnalysis();
-            TIRFunction matlabFunction = funcAnalysis.getTree();
 
-            Generator gen = new Generator(funcAnalysis, opts.doCopyInsertion);
-            program.addFunction(gen.genFunction(matlabFunction));
-            totalPtCiTime += gen.getCopyInsertionTime();
+            String functionName = funcAnalysis.getTree().getName().getID() + "_" + toSuffix(funcAnalysis.getArgs());
+
+            if (!generated.contains(functionName)) {
+                // TODO: Should do a deep copy of matlabFunction
+                TIRFunction matlabFunction = funcAnalysis.getTree();
+                Generator gen = new Generator(funcAnalysis, opts.doCopyInsertion);
+                program.addFunction(gen.genFunction(matlabFunction));
+                generated.add(functionName);
+                System.out.println("Generated: " + functionName);
+                totalPtCiTime += gen.getCopyInsertionTime();
+            }
+
         }
         endTime = System.currentTimeMillis();
 

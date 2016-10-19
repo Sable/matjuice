@@ -938,12 +938,18 @@ function mc_size(m, dim) {
 
 
 function mc_any(m) {
-    if (typeof(m) === "number")
-        return m !== 0;
-    for (var i = 0; i < m.length; ++i)
-        if (m !== 0)
-            return 1;
-    return 0;
+    // TODO: Handle 2d and ndarrays correctly
+    if (typeof m === 'number')
+        return m !== 0 ? 1 : 0;
+    else if (typeof m === 'boolean')
+        return m ? 1 : 0;
+    else {
+        for (var i = 0; i < m.length; ++i) {
+            if (m[i] !== 0)
+                return 1;
+        }
+        return 0;
+    }
 }
 
 function mc_fix_S(x) {
