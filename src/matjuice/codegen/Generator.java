@@ -44,7 +44,7 @@ public class Generator {
     private boolean doCopyInsertion;
     private long startTime = 0;
     private long endTime = 0;
-    private boolean verbose = true;
+    private boolean verbose = false;
 
     public Generator(IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> analysis,
       boolean doCopyInsertion) {
@@ -63,15 +63,37 @@ public class Generator {
      * - formal parameters that might be written to will be cloned
      * - a return statement of the output parameter list is added at
      *   the end of the function
+     *
+     *   Note that if the same Tamer function is called from multiple call sites with
+     *   values of different shapes, the interprocedural ValueAnalysis will produce multiple
+     *   copies of the tirFunction that **share some internal nodes**. However the generation
+     *   modifies the input function to add a return statement, potentially adding it multiple times
+     *   if multiple variations of the function are generated. Since the generation
+     *   relies on the identity of nodes to obtain analysis results we cannot create a copy before the
+     *   generation...
+     *
+     *   At the moment we avoid the issue by only adding a return statement if there are none. Should the genFunction
+     *   needs to be modified in the future, we should avoid mutating the input function during code generation. If
+     *   that cannot be avoided, the genFunction implementation should be refactored to mutate the generated code
+     *   rather than the input function.
      */
     public Function genFunction(TIRFunction tirFunction) {
+
         String functionName = FunctionRenamer.getFunctionName(tirFunction, analysis);
         if (verbose) {
             System.out.println("genFunction(" + functionName + ")");
         }
 
         // Add an explicit return at the end of the function
-        addReturn(tirFunction);
+        // if none is present.
+        // This is somewhat of a hack, see the explanation in the comments at the top.
+        // Better avoid it for future modifications, and still better to refactor to not
+        // need the hack in the first place.
+        TIRStatementList tirStmts = tirFunction.getStmtList();
+        if (tirStmts.getChild(tirStmts.getNumChild()-1).getClass() != TIRReturnStmt.class) {
+            addReturn(tirFunction);
+        }
+
 
         // Identify locals in order to add proper "var" declarations in JS.
         locals = LocalVars.apply(tirFunction);
@@ -125,6 +147,12 @@ public class Generator {
         TIRStmt ret = new TIRReturnStmt();
         stmts.add(ret);
         tirFunction.setStmtList(stmts);
+    }
+
+    private static TIRStatementList addReturn(TIRStatementList stmts) {
+        TIRStmt ret = new TIRReturnStmt();
+        stmts.add(ret);
+        return stmts;
     }
 
     private static void performCopyInsertion(TIRFunction tirFunction) {

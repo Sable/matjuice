@@ -25,6 +25,7 @@ import java.util.*;
 
 import matjuice.pretty.Pretty;
 import matjuice.codegen.Generator;
+import matjuice.codegen.FunctionRenamer;
 import matjuice.jsast.Program;
 
 import matjuice.utils.Utils;
@@ -68,21 +69,6 @@ public class Main {
                 return sb.toString();
             sb.append(line + "\n");
         }
-    }
-
-    public static String toSuffix(Args<AggrValue<BasicMatrixValue>> args) {
-        String suffix = "";
-        Iterator var2 = args.iterator();
-
-        while(var2.hasNext()) {
-            BasicMatrixValue bmv = (BasicMatrixValue)var2.next();
-            if (bmv.hasShape() && bmv.getShape().isScalar())
-                suffix += "S";
-            else
-                suffix += "M";
-        }
-
-        return suffix;
     }
 
     public static void main(String[] args) {
@@ -133,10 +119,14 @@ public class Main {
         for (int i = 0; i < numFunctions; ++i) {
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis = analysis.getNodeList().get(i).getAnalysis();
 
-            String functionName = funcAnalysis.getTree().getName().getID() + "_" + toSuffix(funcAnalysis.getArgs());
+            String functionName = funcAnalysis.getTree().getName().getID();
+
+            String suffix = FunctionRenamer.toSuffix(funcAnalysis.getArgs());
+            if (suffix != "") {
+                functionName += "_" + suffix;
+            }
 
             if (!generated.contains(functionName)) {
-                // TODO: Should do a deep copy of matlabFunction
                 TIRFunction matlabFunction = funcAnalysis.getTree();
                 Generator gen = new Generator(funcAnalysis, opts.doCopyInsertion);
                 program.addFunction(gen.genFunction(matlabFunction));
@@ -146,6 +136,8 @@ public class Main {
             }
 
         }
+        // TODO: Add alias for the top-level function so it can be called with the original name
+        // and automatically dispatches on argument shapes to one of the specialized versions.
         endTime = System.currentTimeMillis();
 
         // End of compilation
