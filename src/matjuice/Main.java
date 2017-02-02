@@ -114,12 +114,15 @@ public class Main {
 
         Set generated = new HashSet<String>();
         Program program = new Program();
+        String entryPointName = null;
+        String entryPointShape = null;
 
         int numFunctions = analysis.getNodeList().size();
         for (int i = 0; i < numFunctions; ++i) {
             IntraproceduralValueAnalysis<AggrValue<BasicMatrixValue>> funcAnalysis = analysis.getNodeList().get(i).getAnalysis();
 
             String functionName = funcAnalysis.getTree().getName().getID();
+            String originalFunctionName = functionName;
 
             String suffix = FunctionRenamer.toSuffix(funcAnalysis.getArgs());
             if (suffix != "") {
@@ -135,9 +138,12 @@ public class Main {
                 totalPtCiTime += gen.getCopyInsertionTime();
             }
 
+            // Treat the first function as the entry point of the program
+            if (i == 0) {
+                entryPointName = functionName;
+                entryPointShape = suffix;
+            }
         }
-        // TODO: Add alias for the top-level function so it can be called with the original name
-        // and automatically dispatches on argument shapes to one of the specialized versions.
         endTime = System.currentTimeMillis();
 
         // End of compilation
@@ -170,6 +176,15 @@ public class Main {
 
             out.write(String.format("%n%n// BEGINNING OF PROGRAM%n%n"));
             out.write(Pretty.display(program.pp()));
+            out.write('\n');
+            out.write(String.format("module.exports['/pando/1.0.0'] = function (x, cb) {%n" +
+                                    "  try {%n" +
+                                    "    var r = %s(x)%n" +
+                                    "    cb(null, r)%n" +
+                                    "  } catch (e) {%n" +
+                                    "    cb(e)%n" +
+                                    "  }%n" +
+                                    "}", entryPointName));
             out.write('\n');
         }
         catch (IOException exc) {
