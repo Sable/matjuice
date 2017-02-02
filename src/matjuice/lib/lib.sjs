@@ -17,7 +17,7 @@ var MC_COLON = {};
 var MC_TICTOC = 0;
 
 function mc_error(msg) {
-    throw msg;
+    throw new Error(msg);
 }
 
 macro elemwise {
@@ -46,7 +46,7 @@ macro pairwise {
     rule { ( $out:ident <= $M1:ident $op $M2:ident ) } => {
         var m1_length = $M1.mj_numel();
         var m2_length = $M2.mj_numel();
-        if (m1_length !== m2_length) throw "array sizes differ";
+        if (m1_length !== m2_length) throw new Error("array sizes differ");
         for (var i = 1, n = m1_length; i <= n; ++i) {
             var x = $M1.mj_get([i]);
             var y = $M2.mj_get([i]);
@@ -55,7 +55,7 @@ macro pairwise {
     }
 
     rule { ( $out:ident <= $fn:expr $M1:ident $M2:ident ) } => {
-        if ($M1.mj_numel() !== $M2.mj_numel()) throw "array sizes differ";
+        if ($M1.mj_numel() !== $M2.mj_numel()) throw new Error("array sizes differ");
         for (var i = 1, n = $M1.mj_numel(); i <= n; ++i) {
             var x = $M1.mj_get([i]);
             var y = $M2.mj_get([i]);
@@ -125,7 +125,7 @@ function mc_rem_SS(x, y) {
 
 function mc_rem_SM(x, m) {
     var out = mj_new_from(m);
-    elemwise(out <= m % x);
+    elemwise2(out <= x % m);
     return out;
 }
 
@@ -157,7 +157,7 @@ function mc_mod_SM(x, m) {
     return out;
 }
 
-function mc_mod_MS(x, m) {
+function mc_mod_MS(m, x) {
     var out = mj_new_from(m);
     for (var i = 1; i <= m.mj_numel(); ++i) {
         out.mj_set(mc_mod_SS(m.mj_get([i]), x), [i]);
@@ -168,12 +168,12 @@ function mc_mod_MS(x, m) {
 function mc_mod_MM(m1, m2) {
     var out = mj_new_from(m1);
     if (m1.mj_numel() !== m2.mj_numel()) {
-        throw "matrix sizes differ";
+        throw new Error("matrix sizes differ");
     }
-    for (var i = 1; i <= m.mj_numel(); ++i) {
+    for (var i = 1; i <= m1.mj_numel(); ++i) {
         var a = m1.mj_get([i]);
         var b = m2.mj_get([i]);
-        out.mj_set(mc_mod_SS(x, y), [i]);
+        out.mj_set(mc_mod_SS(a, b), [i]);
     }
     return out;
 }
@@ -203,7 +203,7 @@ function mc_mtimes_MM(m1, m2) {
     var m2_rows = m2.mj_size()[0];
     var m2_cols = m2.mj_size()[1];
     if (m1_cols !== m2_rows) {
-        throw 'Inner matrix dimensions must agree.';
+        throw new Error('Inner matrix dimensions must agree.');
     }
 
     var out = mc_zeros(m1_rows, m2_cols);
@@ -244,9 +244,7 @@ function mc_mrdivide_SS(x, y) {
 
 
 function mc_mrdivide_SM(x, m) {
-    var out = mj_new_from(m);
-    elemwise(out <= m / x);
-    return out;
+    throw new Error('Unsupported mrdivide for scalar-matrix arguments');
 }
 
 
@@ -256,6 +254,9 @@ function mc_mrdivide_MS(m, x) {
     return out;
 }
 
+function mc_mrdivide_MM(m1, m2) {
+    throw new Error("mc_mrdivide_MM: not implemented");
+}
 
 function mc_rdivide_SS(x, y) {
     return x / y;
@@ -269,7 +270,7 @@ function mc_rdivide_MS(m, d) {
 
 function mc_rdivide_SM(d, m) {
     var out = mj_new_from(m);
-    elemwise(out <= d / m);
+    elemwise2(out <= d / m);
     return out;
 }
 
@@ -279,10 +280,6 @@ function mc_rdivide_MM(m1, m2) {
     return out;
 }
 
-function mc_mrdivide_MM(m1, m2) {
-    throw "mc_mrdivide_MM: not implemented";
-}
-
 function mc_lt_SS(x, y) {
     return x<y;
 }
@@ -290,7 +287,7 @@ function mc_lt_SS(x, y) {
 
 function mc_lt_SM(x, m) {
     var out = mj_new_from(m);
-    elemwise(out <= m < x);
+    elemwise2(out <= x < m);
     return out;
 }
 
@@ -316,7 +313,7 @@ function mc_gt_SS(x, y) {
 
 function mc_gt_SM(x, m) {
     var out = mj_new_from(m);
-    elemwise(out <= m > x);
+    elemwise2(out <= x > m);
     return out;
 }
 
@@ -341,7 +338,7 @@ function mc_le_SS(x, y) {
 
 function mc_le_SM(x, m) {
     var out = mj_new_from(m);
-    elemwise(out <= m <= x);
+    elemwise2(out <= x <= m);
     return out;
 }
 
@@ -367,7 +364,7 @@ function mc_ge_SS(x, y) {
 
 function mc_ge_SM(x, m) {
     var out = mj_new_from(m);
-    elemwise(out <= m >= x);
+    elemwise2(out <= x >= m);
     return out;
 }
 
@@ -393,7 +390,7 @@ function mc_eq_SS(x1, x2) {
 
 function mc_eq_SM(x, m) {
     var out = mj_new_from(m);
-    elemwise(out <= m === x);
+    elemwise2(out <= x === m);
     return out;
 }
 
@@ -418,7 +415,7 @@ function mc_ne_SS(x1, x2) {
 
 function mc_ne_SM(x, m) {
     var out = mj_new_from(m);
-    elemwise(out <= m !== x);
+    elemwise2(out <= x !== m);
     return out;
 }
 
@@ -580,7 +577,7 @@ function mc_horzcat() {
             num_rows  = arguments[i].mj_size()[0];
         }
         else if (arguments[i].mj_size()[0] != num_rows) {
-            throw "Dimensions of matrices being concatenated are not consistent.";
+            throw new Error("Dimensions of matrices being concatenated are not consistent.");
 
         }
         num_cols += arguments[i].mj_size()[1];
@@ -614,7 +611,7 @@ function mc_vertcat() {
             num_cols = arguments[i].mj_size()[1];
         }
         else if (arguments[i].mj_size()[1] != num_cols) {
-            throw "Dimensions of matrices being concatenated are not consistent.";
+            throw new Error("Dimensions of matrices being concatenated are not consistent.");
         }
         num_rows += arguments[i].mj_size()[0];
         len += arguments[i].mj_numel();
@@ -773,7 +770,7 @@ function mc_colon() {
         step = arguments[1];
         break;
     default:
-        throw "invalid number of arguments";
+        throw new Error("invalid number of arguments");
     }
 
     var len = Math.floor((stop - start) / step) + 1;
